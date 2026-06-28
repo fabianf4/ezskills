@@ -23,6 +23,12 @@ describe('package publish boundaries', () => {
     expect(contents).toMatch(/^catalog\/index\.json\s*$/m);
   });
 
+  it('.gitignore excludes local install targets (.opencode/ and skills/)', () => {
+    const contents = readFileSync(GITIGNORE, 'utf-8');
+    expect(contents).toMatch(/^\.opencode\/?\s*$/m);
+    expect(contents).toMatch(/^skills\/?\s*$/m);
+  });
+
   it('package.json files excludes catalog/index.json (no stale cache in the tarball)', () => {
     const pkg = JSON.parse(readFileSync(PACKAGE_JSON, 'utf-8')) as {
       files?: unknown;

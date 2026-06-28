@@ -51,6 +51,15 @@ describe('InstallState', () => {
     expect(state.getScope()).toBe('local');
   });
 
+  it('setScope clears the selection (symmetric with UninstallState)', () => {
+    const state = new InstallState();
+    state.toggle('react');
+    state.toggle('vue');
+    state.setScope('global');
+    expect(state.getScope()).toBe('global');
+    expect(state.getSelectedNames()).toEqual([]);
+  });
+
   it('filter applies SearchService', () => {
     const state = new InstallState();
     state.setQuery('react');

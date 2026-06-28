@@ -25,6 +25,7 @@ export class InstallState {
 
   setScope(s: Scope): void {
     this.scope = s;
+    this.selected.clear();
   }
 
   isSelected(name: string): boolean {
