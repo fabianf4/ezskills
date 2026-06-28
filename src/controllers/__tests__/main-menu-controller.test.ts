@@ -6,7 +6,6 @@ import type { Scope } from '../../types/index.js';
 const buildHandlers = () => ({
   onInstall: vi.fn<(scope: Scope) => void>(),
   onUninstall: vi.fn<(scope: Scope) => void>(),
-  onAuto: vi.fn<() => void>(),
   onExit: vi.fn<() => void>(),
 });
 
@@ -19,17 +18,6 @@ describe('MainMenuController', () => {
   it('canGoBack() is false (main is the entry point)', () => {
     const c = new MainMenuController(new MenuState(), buildHandlers());
     expect(c.canGoBack()).toBe(false);
-  });
-
-  it('handleSelect("auto") navigates to auto and calls onAuto', () => {
-    const menu = new MenuState();
-    const h = buildHandlers();
-    const c = new MainMenuController(menu, h);
-
-    c.handleSelect('auto', 'global');
-
-    expect(menu.getCurrent()).toBe('auto');
-    expect(h.onAuto).toHaveBeenCalledTimes(1);
   });
 
   it('handleSelect("install", "global") navigates to install and calls onInstall with global', () => {
@@ -83,7 +71,6 @@ describe('MainMenuController', () => {
 
     c.handleSelect('install', 'global');
 
-    expect(h.onAuto).not.toHaveBeenCalled();
     expect(h.onUninstall).not.toHaveBeenCalled();
     expect(h.onExit).not.toHaveBeenCalled();
   });
@@ -107,13 +94,8 @@ describe('MainMenuController', () => {
 });
 
 describe('MAIN_MENU_OPTIONS', () => {
-  it('exposes the three top-level entries in order', () => {
-    expect(MAIN_MENU_OPTIONS.map((o) => o.id)).toEqual(['auto', 'install', 'uninstall']);
-  });
-
-  it('auto option has the AutoSkills de Midudev description', () => {
-    const auto = MAIN_MENU_OPTIONS.find((o) => o.id === 'auto');
-    expect(auto?.description).toBe('AutoSkills from Midudev');
+  it('exposes install and uninstall in order', () => {
+    expect(MAIN_MENU_OPTIONS.map((o) => o.id)).toEqual(['install', 'uninstall']);
   });
 
   it('install option label is in English', () => {

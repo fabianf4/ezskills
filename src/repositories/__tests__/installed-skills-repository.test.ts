@@ -5,6 +5,8 @@ import type { InstalledSkill, SkillProvider, Scope } from '../../types/index.js'
 function buildProvider(id: string, byScope: Partial<Record<Scope, InstalledSkill[]>>): SkillProvider {
   return {
     id,
+    label: id,
+    isInstalled: false,
     async getInstalledSkills(scope: Scope): Promise<InstalledSkill[]> {
       return byScope[scope] ?? [];
     },

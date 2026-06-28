@@ -4,7 +4,7 @@ import { OpenCodeProvider } from '../opencode-provider.js';
 import type { FsAdapter, IndexedSkill } from '../../../types/index.js';
 
 function buildMemFs(): FsAdapter {
-  return vol.promises as unknown as FsAdapter;
+  return { ...vol.promises, existsSync: (p: string) => vol.existsSync(p) } as unknown as FsAdapter;
 }
 
 const PATHS = {
@@ -27,6 +27,22 @@ describe('OpenCodeProvider', () => {
   it('id is "opencode"', () => {
     const provider = new OpenCodeProvider(PATHS, buildMemFs());
     expect(provider.id).toBe('opencode');
+  });
+
+  it('label is "OpenCode"', () => {
+    const provider = new OpenCodeProvider(PATHS, buildMemFs());
+    expect(provider.label).toBe('OpenCode');
+  });
+
+  it('isInstalled is true when ~/.config/opencode/ exists', () => {
+    vol.fromJSON({ '/home/user/.config/opencode/.keep': '' }, '/');
+    const provider = new OpenCodeProvider(PATHS, buildMemFs());
+    expect(provider.isInstalled).toBe(true);
+  });
+
+  it('isInstalled is false when ~/.config/opencode/ is missing', () => {
+    const provider = new OpenCodeProvider(PATHS, buildMemFs());
+    expect(provider.isInstalled).toBe(false);
   });
 
   it('install copies the skill folder recursively to the global target', async () => {

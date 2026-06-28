@@ -16,6 +16,8 @@ function buildProvider(
 ): SkillProvider {
   return {
     id,
+    label: id,
+    isInstalled: false,
     async getInstalledSkills() { return installed; },
     async install() {},
     async uninstall() {},
@@ -31,7 +33,7 @@ describe('InstallController', () => {
     const provider = buildProvider('opencode');
     const installedRepo = new InstalledSkillsRepository([provider]);
     const installer = new InstallerService(new Map([['opencode', provider]]), installedRepo);
-    const c = new InstallController(repo, installedRepo, installer, 'opencode', {
+    const c = new InstallController(repo, installedRepo, installer, new Set(['opencode']), {
       onBack: vi.fn(),
       onResult: vi.fn(),
       onError: vi.fn(),
@@ -42,22 +44,29 @@ describe('InstallController', () => {
     expect(list[0]?.name).toBe('zod');
   });
 
-  it('loadInstalledNames returns set of installed names', async () => {
-    const provider = buildProvider('opencode', [
+  it('loadInstalledNames returns set of installed names from the chosen providers', async () => {
+    const opencode = buildProvider('opencode', [
       { name: 'a', scope: 'global', providerId: 'opencode', path: '/a' },
     ]);
-    const installedRepo = new InstalledSkillsRepository([provider]);
-    const installer = new InstallerService(new Map([['opencode', provider]]), installedRepo);
+    const openclaw = buildProvider('openclaw', [
+      { name: 'b', scope: 'global', providerId: 'openclaw', path: '/b' },
+    ]);
+    const installedRepo = new InstalledSkillsRepository([opencode, openclaw]);
+    const installer = new InstallerService(
+      new Map([['opencode', opencode], ['openclaw', openclaw]]),
+      installedRepo,
+    );
     const c = new InstallController(
       {} as SkillRepository,
       installedRepo,
       installer,
-      'opencode',
+      new Set(['opencode', 'openclaw']),
       { onBack: vi.fn(), onResult: vi.fn(), onError: vi.fn() },
     );
 
     const names = await c.loadInstalledNames();
     expect(names.has('a')).toBe(true);
+    expect(names.has('b')).toBe(true);
   });
 
   it('setScope and getScope', () => {
@@ -65,7 +74,7 @@ describe('InstallController', () => {
       {} as SkillRepository,
       {} as InstalledSkillsRepository,
       {} as InstallerService,
-      'opencode',
+      new Set(['opencode']),
       { onBack: vi.fn(), onResult: vi.fn(), onError: vi.fn() },
     );
     c.setScope('local');
@@ -77,7 +86,7 @@ describe('InstallController', () => {
       {} as SkillRepository,
       {} as InstalledSkillsRepository,
       {} as InstallerService,
-      'opencode',
+      new Set(['opencode']),
       { onBack: vi.fn(), onResult: vi.fn(), onError: vi.fn() },
     );
     c.toggle('zod');
@@ -91,7 +100,7 @@ describe('InstallController', () => {
       {} as SkillRepository,
       {} as InstalledSkillsRepository,
       {} as InstallerService,
-      'opencode',
+      new Set(['opencode']),
       { onBack: vi.fn(), onResult: vi.fn(), onError: vi.fn() },
     );
     c.setQuery('zod');
@@ -105,14 +114,27 @@ describe('InstallController', () => {
       {} as SkillRepository,
       {} as InstalledSkillsRepository,
       {} as InstallerService,
-      'opencode',
+      new Set(['opencode']),
       { onBack: vi.fn(), onResult: vi.fn(), onError },
     );
     await c.confirm([]);
     expect(onError).toHaveBeenCalledWith('No skills selected');
   });
 
-  it('confirm calls installer and onResult', async () => {
+  it('confirm with empty providerIds calls onError', async () => {
+    const onError = vi.fn();
+    const c = new InstallController(
+      {} as SkillRepository,
+      {} as InstalledSkillsRepository,
+      {} as InstallerService,
+      new Set(),
+      { onBack: vi.fn(), onResult: vi.fn(), onError },
+    );
+    await c.confirm([SKILL]);
+    expect(onError).toHaveBeenCalledWith('No provider selected');
+  });
+
+  it('confirm with a single provider calls installer once', async () => {
     vol.fromJSON({ '/idx.json': '[]' }, '/');
     const repo = new SkillRepository('/idx.json', fs());
     const provider = buildProvider('opencode');
@@ -120,7 +142,7 @@ describe('InstallController', () => {
     const installer = new InstallerService(new Map([['opencode', provider]]), installedRepo);
     const installSpy = vi.spyOn(provider, 'install');
     const onResult = vi.fn();
-    const c = new InstallController(repo, installedRepo, installer, 'opencode', {
+    const c = new InstallController(repo, installedRepo, installer, new Set(['opencode']), {
       onBack: vi.fn(),
       onResult,
       onError: vi.fn(),
@@ -130,9 +152,39 @@ describe('InstallController', () => {
     expect(onResult).toHaveBeenCalled();
   });
 
+  it('confirm with multiple providers fans out and aggregates the result', async () => {
+    vol.fromJSON({ '/idx.json': '[]' }, '/');
+    const repo = new SkillRepository('/idx.json', fs());
+    const opencode = buildProvider('opencode');
+    const openclaw = buildProvider('openclaw');
+    const installedRepo = new InstalledSkillsRepository([opencode, openclaw]);
+    const installer = new InstallerService(
+      new Map([['opencode', opencode], ['openclaw', openclaw]]),
+      installedRepo,
+    );
+    const opencodeSpy = vi.spyOn(opencode, 'install');
+    const openclawSpy = vi.spyOn(openclaw, 'install');
+    const onResult = vi.fn();
+    const c = new InstallController(
+      repo,
+      installedRepo,
+      installer,
+      new Set(['opencode', 'openclaw']),
+      { onBack: vi.fn(), onResult, onError: vi.fn() },
+    );
+    await c.confirm([SKILL]);
+    expect(opencodeSpy).toHaveBeenCalledWith(SKILL, 'local');
+    expect(openclawSpy).toHaveBeenCalledWith(SKILL, 'local');
+    const result = onResult.mock.calls[0]?.[0] as { installed: string[]; failed: unknown[] };
+    expect(result.installed).toEqual(['zod', 'zod']);
+    expect(result.failed).toEqual([]);
+  });
+
   it('confirm with installer per-skill failure calls onResult with failure', async () => {
     const provider: SkillProvider = {
       id: 'opencode',
+      label: 'OpenCode',
+      isInstalled: true,
       async getInstalledSkills() { return []; },
       async install() { throw new Error('boom'); },
       async uninstall() {},
@@ -144,7 +196,7 @@ describe('InstallController', () => {
       {} as SkillRepository,
       installedRepo,
       installer,
-      'opencode',
+      new Set(['opencode']),
       { onBack: vi.fn(), onResult, onError: vi.fn() },
     );
     await c.confirm([SKILL]);
@@ -163,7 +215,7 @@ describe('InstallController', () => {
       {} as SkillRepository,
       installedRepo,
       installer,
-      'opencode',
+      new Set(['opencode']),
       { onBack: vi.fn(), onResult: vi.fn(), onError },
     );
     await c.confirm([SKILL]);
@@ -177,7 +229,7 @@ describe('InstallController', () => {
       {} as SkillRepository,
       {} as InstalledSkillsRepository,
       {} as InstallerService,
-      'opencode',
+      new Set(['opencode']),
       { onBack, onResult: vi.fn(), onError: vi.fn() },
     );
     c.back();

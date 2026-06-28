@@ -7,6 +7,8 @@ import type { InstalledSkill, SkillProvider } from '../../types/index.js';
 function buildProvider(id: string, installed: InstalledSkill[] = []): SkillProvider {
   return {
     id,
+    label: id,
+    isInstalled: false,
     async getInstalledSkills() { return installed; },
     async install() {},
     async uninstall() {},
@@ -19,20 +21,42 @@ const SAMPLE: InstalledSkill[] = [
 ];
 
 describe('UninstallController', () => {
-  it('loadInstalled returns installed for current scope', async () => {
+  it('loadInstalled returns installed for current scope (all providers)', async () => {
     const provider = buildProvider('opencode', SAMPLE);
     const repo = new InstalledSkillsRepository([provider]);
     const installer = new InstallerService(new Map([['opencode', provider]]), repo);
-    const c = new UninstallController(repo, installer, { onBack: vi.fn(), onResult: vi.fn() });
+    const c = new UninstallController(repo, installer, undefined, { onBack: vi.fn(), onResult: vi.fn() });
     const list = await c.loadInstalled();
     expect(list).toHaveLength(2);
+  });
+
+  it('loadInstalled filters by providerIds when given', async () => {
+    const opencode = buildProvider('opencode', [
+      { name: 'a', scope: 'global', providerId: 'opencode', path: '/a' },
+    ]);
+    const openclaw = buildProvider('openclaw', [
+      { name: 'b', scope: 'global', providerId: 'openclaw', path: '/b' },
+    ]);
+    const repo = new InstalledSkillsRepository([opencode, openclaw]);
+    const installer = new InstallerService(
+      new Map([['opencode', opencode], ['openclaw', openclaw]]),
+      repo,
+    );
+    const c = new UninstallController(
+      repo,
+      installer,
+      new Set(['opencode']),
+      { onBack: vi.fn(), onResult: vi.fn() },
+    );
+    const list = await c.loadInstalled();
+    expect(list.map((s) => s.name)).toEqual(['a']);
   });
 
   it('setScope updates scope', () => {
     const provider = buildProvider('opencode');
     const repo = new InstalledSkillsRepository([provider]);
     const installer = new InstallerService(new Map([['opencode', provider]]), repo);
-    const c = new UninstallController(repo, installer, { onBack: vi.fn(), onResult: vi.fn() });
+    const c = new UninstallController(repo, installer, undefined, { onBack: vi.fn(), onResult: vi.fn() });
     c.setScope('local');
     expect(c.getScope()).toBe('local');
   });
@@ -41,7 +65,7 @@ describe('UninstallController', () => {
     const provider = buildProvider('opencode');
     const repo = new InstalledSkillsRepository([provider]);
     const installer = new InstallerService(new Map([['opencode', provider]]), repo);
-    const c = new UninstallController(repo, installer, { onBack: vi.fn(), onResult: vi.fn() });
+    const c = new UninstallController(repo, installer, undefined, { onBack: vi.fn(), onResult: vi.fn() });
     c.toggle('a');
     expect(c.isSelected('a')).toBe(true);
   });
@@ -50,7 +74,7 @@ describe('UninstallController', () => {
     const provider = buildProvider('opencode');
     const repo = new InstalledSkillsRepository([provider]);
     const installer = new InstallerService(new Map([['opencode', provider]]), repo);
-    const c = new UninstallController(repo, installer, { onBack: vi.fn(), onResult: vi.fn() });
+    const c = new UninstallController(repo, installer, undefined, { onBack: vi.fn(), onResult: vi.fn() });
     c.beginConfirm();
     expect(c.isConfirming()).toBe(true);
     c.cancelConfirm();
@@ -61,7 +85,7 @@ describe('UninstallController', () => {
     const provider = buildProvider('opencode', SAMPLE);
     const repo = new InstalledSkillsRepository([provider]);
     const installer = new InstallerService(new Map([['opencode', provider]]), repo);
-    const c = new UninstallController(repo, installer, { onBack: vi.fn(), onResult: vi.fn() });
+    const c = new UninstallController(repo, installer, undefined, { onBack: vi.fn(), onResult: vi.fn() });
     await c.confirm();
     expect(c.isConfirming()).toBe(false);
   });
@@ -72,7 +96,7 @@ describe('UninstallController', () => {
     const repo = new InstalledSkillsRepository([provider]);
     const installer = new InstallerService(new Map([['opencode', provider]]), repo);
     const onResult = vi.fn();
-    const c = new UninstallController(repo, installer, { onBack: vi.fn(), onResult });
+    const c = new UninstallController(repo, installer, undefined, { onBack: vi.fn(), onResult });
     c.toggle('a');
     c.beginConfirm();
     await c.confirm();
@@ -86,7 +110,7 @@ describe('UninstallController', () => {
     const repo = new InstalledSkillsRepository([provider]);
     const installer = new InstallerService(new Map([['opencode', provider]]), repo);
     const onBack = vi.fn();
-    const c = new UninstallController(repo, installer, { onBack, onResult: vi.fn() });
+    const c = new UninstallController(repo, installer, undefined, { onBack, onResult: vi.fn() });
     c.back();
     expect(onBack).toHaveBeenCalled();
   });

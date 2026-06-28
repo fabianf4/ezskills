@@ -1,17 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Box, Text } from 'ink';
 import { MainMenu } from './views/screens/main-menu.js';
 import { InstallScreen } from './views/screens/install-screen.js';
 import { UninstallScreen } from './views/screens/uninstall-screen.js';
-import { AutoDetectResult } from './views/screens/auto-detect-screen.js';
+import { ProviderPicker } from './views/screens/provider-picker.js';
 import { StatusMessage } from './views/components/status-message.js';
 import { MainMenuController } from './controllers/main-menu-controller.js';
 import { InstallController } from './controllers/install-controller.js';
 import { UninstallController } from './controllers/uninstall-controller.js';
-import { AutoDetectController } from './controllers/auto-detect-controller.js';
 import { MenuState } from './models/menu-state.js';
 import type { AppDependencies } from './config/dependencies.js';
 import type { IndexedSkill, InstalledSkill, Scope } from './types/index.js';
+
+type Screen = 'main' | 'pickProvider' | 'install' | 'uninstall';
+type Mode = 'install' | 'uninstall';
 
 export interface AppProps {
   deps: AppDependencies;
@@ -19,16 +21,30 @@ export interface AppProps {
 
 export const App: React.FC<AppProps> = ({ deps }) => {
   const [menuState] = useState(() => new MenuState());
-  const [screen, setScreen] = useState<'main' | 'install' | 'uninstall' | 'auto'>('main');
+  const [screen, setScreen] = useState<Screen>('main');
+  const [mode, setMode] = useState<Mode>('install');
   const [status, setStatus] = useState<{ kind: 'info' | 'error' | 'success'; text: string } | null>(null);
   const [exitRequested, setExitRequested] = useState(false);
+  const [scope, setScope] = useState<Scope>('local');
+  const [providerIds, setProviderIds] = useState<ReadonlySet<string> | null>(null);
 
-  const [installController] = useState(() =>
-    new InstallController(
+  const [available, setAvailable] = useState<IndexedSkill[]>([]);
+  const [installedNames, setInstalledNames] = useState<Set<string>>(new Set());
+  const [installed, setInstalled] = useState<InstalledSkill[]>([]);
+
+  const [mainMenuController] = useState(() => new MainMenuController(menuState, {
+    onInstall: (s: Scope) => { setScope(s); setMode('install'); setScreen('pickProvider'); },
+    onUninstall: (s: Scope) => { setScope(s); setMode('uninstall'); setScreen('pickProvider'); },
+    onExit: () => setExitRequested(true),
+  }));
+
+  const installController = useMemo(() => {
+    if (!providerIds) return null;
+    return new InstallController(
       deps.skillRepo,
       deps.installedRepo,
       deps.installer,
-      'opencode',
+      providerIds,
       {
         onBack: () => { setScreen('main'); menuState.reset(); },
         onResult: (r) => {
@@ -41,67 +57,63 @@ export const App: React.FC<AppProps> = ({ deps }) => {
         },
         onError: (m) => setStatus({ kind: 'error', text: m }),
       },
-    ),
-  );
+    );
+  }, [deps.skillRepo, deps.installedRepo, deps.installer, providerIds, menuState]);
 
-  const [uninstallController] = useState(() =>
-    new UninstallController(deps.installedRepo, deps.installer, {
-      onBack: () => { setScreen('main'); menuState.reset(); },
-      onResult: (r) => {
-        setStatus({
-          kind: r.failed.length > 0 ? 'error' : 'success',
-          text: `Uninstalled: ${r.uninstalled.join(', ') || 'none'}; failed: ${r.failed.map((f) => f.name).join(', ') || 'none'}`,
-        });
-        setScreen('main');
-        menuState.reset();
+  const uninstallController = useMemo(() => {
+    if (!providerIds) return null;
+    return new UninstallController(
+      deps.installedRepo,
+      deps.installer,
+      providerIds,
+      {
+        onBack: () => { setScreen('main'); menuState.reset(); },
+        onResult: (r) => {
+          setStatus({
+            kind: r.failed.length > 0 ? 'error' : 'success',
+            text: `Uninstalled: ${r.uninstalled.join(', ') || 'none'}; failed: ${r.failed.map((f) => f.name).join(', ') || 'none'}`,
+          });
+          setScreen('main');
+          menuState.reset();
+        },
       },
-    }),
-  );
-
-  const [mainMenuController] = useState(() => new MainMenuController(menuState, {
-    onInstall: (s: Scope) => { setScope(s); installController.setScope(s); setScreen('install'); },
-    onUninstall: (s: Scope) => { setScope(s); uninstallController.setScope(s); setScreen('uninstall'); },
-    onAuto: () => setScreen('auto'),
-    onExit: () => setExitRequested(true),
-  }));
-
-  const [available, setAvailable] = useState<IndexedSkill[]>([]);
-  const [installedNames, setInstalledNames] = useState<Set<string>>(new Set());
-  const [scope, setScope] = useState<Scope>('local');
-  const [installed, setInstalled] = useState<InstalledSkill[]>([]);
-  const [autoLoading, setAutoLoading] = useState(false);
-  const [autoResult, setAutoResult] = useState<{ technologies: string[]; suggested: IndexedSkill[] } | null>(null);
+    );
+  }, [deps.installedRepo, deps.installer, providerIds, menuState]);
 
   useEffect(() => {
-    if (screen === 'install' && available.length === 0) {
+    if (screen === 'install' && installController && available.length === 0) {
+      installController.setScope(scope);
       installController.loadAvailable().then(setAvailable);
       installController.loadInstalledNames().then(setInstalledNames);
     }
-  }, [screen, available.length, installController]);
+  }, [screen, installController, available.length, scope]);
 
   useEffect(() => {
-    if (screen === 'uninstall') {
+    if (screen === 'uninstall' && uninstallController) {
       uninstallController.setScope(scope);
       uninstallController.loadInstalled().then(setInstalled);
     }
-  }, [screen, scope, uninstallController]);
-
-  useEffect(() => {
-    if (screen === 'auto' && !autoResult && !autoLoading) {
-      setAutoLoading(true);
-      const c = new AutoDetectController({ detector: deps.detector, skillRepo: deps.skillRepo, cwd: process.cwd() });
-      c.run().then((r) => {
-        setAutoResult(r);
-        setAutoLoading(false);
-      });
-    }
-  }, [screen, autoResult, autoLoading, deps]);
+  }, [screen, uninstallController, scope]);
 
   if (exitRequested) {
     return React.createElement(Text, { dimColor: true }, 'Goodbye!');
   }
 
-  if (screen === 'install') {
+  if (screen === 'pickProvider') {
+    return React.createElement(
+      Box,
+      { flexDirection: 'column' },
+      status ? React.createElement(StatusMessage, status) : null,
+      React.createElement(ProviderPicker, {
+        title: mode === 'install' ? 'Choose tools to install to' : 'Choose tools to uninstall from',
+        providers: deps.listInstalledProviders(),
+        onConfirm: (ids) => { setProviderIds(new Set(ids)); setScreen(mode); },
+        onBack: () => { setScreen('main'); setProviderIds(null); menuState.reset(); },
+      }),
+    );
+  }
+
+  if (screen === 'install' && installController) {
     return React.createElement(
       Box,
       { flexDirection: 'column' },
@@ -117,7 +129,7 @@ export const App: React.FC<AppProps> = ({ deps }) => {
     );
   }
 
-  if (screen === 'uninstall') {
+  if (screen === 'uninstall' && uninstallController) {
     return React.createElement(
       Box,
       { flexDirection: 'column' },
@@ -131,22 +143,6 @@ export const App: React.FC<AppProps> = ({ deps }) => {
           await uninstallController.confirm();
         },
         onBack: () => { uninstallController.back(); setStatus(null); },
-      }),
-    );
-  }
-
-  if (screen === 'auto') {
-    return React.createElement(
-      Box,
-      { flexDirection: 'column' },
-      React.createElement(AutoDetectResult, {
-        loading: autoLoading,
-        technologies: autoResult?.technologies ?? [],
-        suggested: autoResult?.suggested ?? [],
-        onConfirm: (_skills: IndexedSkill[]) => {
-          setScreen('install');
-        },
-        onBack: () => { setScreen('main'); menuState.reset(); setAutoResult(null); },
       }),
     );
   }

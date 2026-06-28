@@ -37,7 +37,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ options, canGoBack, onSelect
     Box,
     { flexDirection: 'column' },
     React.createElement(Text, { bold: true }, 'ezskills'),
-    React.createElement(Text, { dimColor: true }, 'Manage skills for OpenCode and OpenClaw'),
+    React.createElement(Text, { dimColor: true }, 'Manage skills for your tools'),
     React.createElement(Text, null, ''),
     options.map((opt, idx) => {
       const isActive = idx === activeIndex;

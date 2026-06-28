@@ -12,12 +12,15 @@ El proyecto se desarrolla con TDD estricto: **test rojo → implementación mín
 ## Comandos
 
 - `pnpm dev`           — corre con `tsx src/index.ts` (sin compilar).
-- `pnpm build`         — `tsc -p tsconfig.build.json` -> `dist/`.
+- `pnpm build`         — `tsc -p tsconfig.build.json` -> `dist/`, luego `chmod +x dist/index.js` (postbuild).
 - `pnpm start`         — `node dist/index.js` (requiere `build` previo).
-- `pnpm test`          — `vitest run` (suite completa, ~185 tests).
+- `pnpm test`          — `vitest run` (suite completa).
 - `pnpm test:watch`    — `vitest` en watch.
 - `pnpm test:coverage` — reporte v8; umbral 90% (aplica a lógica de negocio).
 - `pnpm typecheck`     — `tsc --noEmit -p tsconfig.typecheck.json`.
+- `npm install -g .`   — instala el bin `ezskills` globalmente desde este repo (en este sistema `pnpm add -g .` falla por un check de PATH de pnpm 9.15.4; usar npm).
+
+CLI flags: `ezskills --version` / `-v` imprime versión y sale con código 0; `ezskills --help` / `-h` imprime ayuda y sale con código 0; opción desconocida sale con código 2. Sin flags arranca la TUI.
 
 No hay linter/formatter configurado. No ejecutar `pnpm lint`.
 
@@ -31,8 +34,7 @@ No hay linter/formatter configurado. No ejecutar `pnpm lint`.
   - `views/` — componentes Ink (sin lógica de negocio).
   - `services/providers/` — `OpenCodeProvider`, `OpenClawProvider` extienden `BaseFsProvider`.
   - `services/installer/` — orquesta install/uninstall multi-skill.
-  - `services/indexer/` — escanea `skills/` y genera `.ezskills/index.json`.
-  - `services/detector/` — `StubDetector` activo; sustituir por `AutoSkillsDetector` cuando se integre.
+  - `services/indexer/` — escanea `catalog/` y genera `.ezskills/index.json`.
   - `services/search/` — búsqueda pura por tokens en name/description/technologies.
   - `repositories/` — `SkillRepository` (lee `index.json` cacheado), `InstalledSkillsRepository`.
 
@@ -50,7 +52,11 @@ No hay linter/formatter configurado. No ejecutar `pnpm lint`.
 ## UI
 
 - Cada skill se muestra como **Nombre** en una línea y **descripción corta** en la siguiente. No se exponen paths, technologies, IDs de provider ni scopes al usuario.
-- `UninstallScreen` lista solo las instaladas del scope activo (`global` o `local`).
+- En `InstallScreen`, las skills ya instaladas (en cualquiera de los providers seleccionados) se muestran con la fila atenuada y un sufijo `✓ installed`; no se pueden seleccionar (`Space` no las togglea).
+- Menú principal: `Install Skills`, `Uninstall Skills`. Sin opción de auto-detección.
+- Antes de cada acción (install/uninstall) aparece `ProviderPicker`: pantalla multi-select que lista **solo los providers que el usuario tiene instalados en su sistema**. Si hay exactamente uno, viene **preseleccionado**; con 0 o ≥2 arranca con ninguno. Al confirmar, si la selección está vacía, el picker no avanza y muestra `Select at least one tool`; el mensaje se limpia en cuanto el usuario marca algo con `Space`. Permite instalar/desinstalar en uno o varios providers a la vez.
+- Detección de "instalado" por provider: cada provider expone `readonly isInstalled: boolean` (computed en el constructor a partir de un `installMarker`, normalmente el directorio de configuración del tool — p. ej. `~/.config/opencode/` para OpenCode, `~/.openclaw/` para OpenClaw). `AppDependencies.listInstalledProviders()` filtra por esa señal.
+- `UninstallScreen` lista solo las instaladas del scope activo y de los providers seleccionados en el picker.
 - Keybindings: `↑`/`↓` o `j`/`k` navega, `g`/`G` inicio/final de lista, `Space` selecciona/deselecciona, `Enter` confirma, `Esc` vuelve/cancela, `q` sale (menú principal), `s` enfoca el input de búsqueda, `Tab` alterna scope global/local.
 
 ## Skills (formato de datos)
@@ -70,25 +76,22 @@ Al arrancar, si `.ezskills/index.json` no existe, se regenera automáticamente d
 
 ## Variables de entorno
 
-`EZSKILLS_SKILLS_DIR` (default `<cwd>/catalog`), `EZSKILLS_INDEX_PATH` (`<cwd>/.ezskills/index.json`), `EZSKILLS_OPENCODE_GLOBAL` (`~/.config/opencode/skills`), `EZSKILLS_OPENCODE_LOCAL` (`<cwd>/.opencode/skills`), `EZSKILLS_OPENCLAW_GLOBAL` (`~/.openclaw/skills`), `EZSKILLS_OPENCLAW_LOCAL` (`<cwd>/skills`).
+`EZSKILLS_SKILLS_DIR` (cascada: env si está set → `<cwd>/catalog` si existe → `catalog/` empaquetado dentro del paquete, calculado vía `getBundledSkillsDir()` desde `import.meta.url`), `EZSKILLS_INDEX_PATH` (`<cwd>/.ezskills/index.json`), `EZSKILLS_OPENCODE_GLOBAL` (`~/.config/opencode/skills`), `EZSKILLS_OPENCODE_LOCAL` (`<cwd>/.opencode/skills`), `EZSKILLS_OPENCLAW_GLOBAL` (`~/.openclaw/skills`), `EZSKILLS_OPENCLAW_LOCAL` (`<cwd>/skills`).
 
 ## Contratos clave
 
 - **`SearchService.search(skills, query)`** — case-insensitive, coincidencia parcial (substring), AND lógico entre tokens. Query vacía devuelve copia de la lista. Sin match → `[]`.
-- **`InstallerService.installMany(skills, scope, providerId)`** — **no hace rollback** ante fallos parciales: las skills ya instaladas antes del error permanecen. Devuelve `{ installed: string[]; skipped: string[]; failed: Array<{ name; error }> }`. `skipped` son las que ya estaban instaladas según `InstalledSkillsRepository`.
-- **`InstallerService.uninstallMany(skills)`** — mismo principio: errores por skill no abortan el lote, se acumulan en `failed`.
+- **`InstallerService.installMany(skills, scope, providerId)`** — **no hace rollback** ante fallos parciales: las skills ya instaladas antes del error permanecen. Devuelve `{ installed: string[]; skipped: string[]; failed: Array<{ name; error }> }`. `skipped` son las que ya estaban instaladas según `InstalledSkillsRepository`. Se invoca una vez por `providerId`.
+- **`InstallerService.uninstallMany(skills)`** — mismo principio: errores por skill no abortan el lote, se acumulan en `failed`. Routea per-skill según `InstalledSkill.providerId`.
+- **`InstallController`** — recibe `providerIds: ReadonlySet<string>` (uno o varios). `loadInstalledNames` une los nombres de todos los providers del set. `confirm` itera `installer.installMany` por cada id y agrega `installed`/`skipped`/`failed`. Set vacío → `onError('No provider selected')`.
+- **`SkillProvider.isInstalled`** — boolean síncrono. Cada provider concreto decide su marker (default: `dirname(paths.global)`). En `dependencies.ts` se filtra con `listInstalledProviders()`; el picker se nutre de esa lista, no de `listProviders()`.
+- **`UninstallController`** — recibe `providerIds?: ReadonlySet<string>`. Si está presente, `loadInstalled` filtra `s.providerId ∈ providerIds`; si no, agrega todos los providers.
 - **`InstalledSkillsRepository`** — agrega resultados de todos los providers. Si dos providers reportan la misma `name`, gana el primero y se omite el duplicado.
-- **`StubDetector.detect(_projectPath)`** — siempre `{ technologies: [], suggestedSkillNames: [] }` (determinista, hasta que se integre `AutoSkillsDetector`).
 - **`SkillRepository`** — cachea en memoria el `index.json`; `invalidate()` fuerza relectura. Devuelve copias defensivas de los `IndexedSkill`.
 
 ## Añadir un provider (ej. Cursor)
 
-1. Crear `src/services/providers/cursor-provider.ts` extendiendo `BaseFsProvider` con `readonly id = 'cursor'`.
+1. Crear `src/services/providers/cursor-provider.ts` extendiendo `BaseFsProvider` con `readonly id = 'cursor'` y `readonly label = 'Cursor'`. El `installMarker` se pasa al `super` (3er arg del constructor de `BaseFsProvider`); usar el directorio de configuración del tool, p. ej. `join(homedir(), '.config', 'cursor')` o `dirname(paths.global)`.
 2. Añadir rutas en `src/config/paths.ts` y variables `EZSKILLS_CURSOR_*`.
 3. Registrar en el `Map` de `buildDependencies()` y, si aplica, en `InstalledSkillsRepository`.
-4. Añadir tests en `src/services/providers/__tests__/` siguiendo el patrón de `opencode-provider.test.ts` / `openclaw-provider.test.ts` (memfs).
-
-## Sustituir StubDetector por AutoSkills
-
-1. Implementar `Detector` en `src/services/detector/autoskills-detector.ts`.
-2. Cambiar la instanciación en `buildDependencies()` (no se usa `DetectorFactory` todavía).
+4. Añadir tests en `src/services/providers/__tests__/` siguiendo el patrón de `opencode-provider.test.ts` / `openclaw-provider.test.ts` (memfs), incluyendo un test de `isInstalled` con y sin marker.

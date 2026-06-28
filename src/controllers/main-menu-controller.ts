@@ -8,11 +8,6 @@ export interface MainMenuOption {
 }
 
 export const MAIN_MENU_OPTIONS: ReadonlyArray<MainMenuOption> = [
-  {
-    id: 'auto',
-    label: 'Auto-detect and install',
-    description: 'AutoSkills from Midudev',
-  },
   { id: 'install', label: 'Install Skills' },
   { id: 'uninstall', label: 'Uninstall Skills' },
 ];
@@ -20,7 +15,6 @@ export const MAIN_MENU_OPTIONS: ReadonlyArray<MainMenuOption> = [
 export interface MainMenuHandlers {
   onInstall: (scope: Scope) => void;
   onUninstall: (scope: Scope) => void;
-  onAuto: () => void;
   onExit: () => void;
 }
 
@@ -45,10 +39,6 @@ export class MainMenuController {
 
   handleSelect(optionId: string, scope: Scope): void {
     switch (optionId) {
-      case 'auto':
-        this.menu.go('auto');
-        this.handlers.onAuto();
-        return;
       case 'install':
         this.menu.go('install');
         this.handlers.onInstall(scope);

@@ -1,0 +1,41 @@
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+function getPackageVersion(): string {
+  const here = dirname(fileURLToPath(import.meta.url));
+  const pkgPath = join(here, '..', '..', 'package.json');
+  const raw = readFileSync(pkgPath, 'utf8');
+  const parsed = JSON.parse(raw) as { version?: unknown };
+  if (typeof parsed.version !== 'string') {
+    throw new Error('package.json has no version field');
+  }
+  return parsed.version;
+}
+
+export function printVersion(): void {
+  console.log(`ezskills ${getPackageVersion()}`);
+}
+
+export function printHelp(): void {
+  console.log(`ezskills ${getPackageVersion()}
+
+Usage: ezskills [options]
+
+Options:
+  -v, --version     Print the version and exit
+  -h, --help        Print this help and exit
+
+Run without options to launch the interactive TUI for installing and
+uninstalling skills for OpenCode and OpenClaw.
+
+Environment variables:
+  EZSKILLS_SKILLS_DIR        Skills catalog directory (default: <cwd>/catalog,
+                             falls back to the bundled catalog shipped with the package)
+  EZSKILLS_INDEX_PATH        Index file path (default: <cwd>/.ezskills/index.json)
+  EZSKILLS_OPENCODE_GLOBAL   OpenCode global skills dir
+  EZSKILLS_OPENCODE_LOCAL    OpenCode local skills dir
+  EZSKILLS_OPENCLAW_GLOBAL   OpenClaw global skills dir
+  EZSKILLS_OPENCLAW_LOCAL    OpenClaw local skills dir
+`);
+}

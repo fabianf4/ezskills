@@ -13,6 +13,12 @@ describe('MenuState', () => {
     expect(state.getCurrent()).toBe('install');
   });
 
+  it('go() accepts pickProvider as a valid screen', () => {
+    const state = new MenuState();
+    state.go('pickProvider');
+    expect(state.getCurrent()).toBe('pickProvider');
+  });
+
   it('go() then reset() returns to main', () => {
     const state = new MenuState();
     state.go('uninstall');

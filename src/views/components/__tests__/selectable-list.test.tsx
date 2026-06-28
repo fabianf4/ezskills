@@ -118,4 +118,65 @@ describe('SelectableList', () => {
     );
     expect(lastFrame()).toContain('>');
   });
+
+  it('renders ✓ installed suffix on items whose id is in installedIds', () => {
+    const { lastFrame } = render(
+      React.createElement(SelectableList, {
+        items: [
+          { id: 'a', title: 'Alpha' },
+          { id: 'b', title: 'Beta' },
+        ],
+        activeIndex: 0,
+        selectedIds: new Set<string>(),
+        installedIds: new Set(['a']),
+        onToggle: () => {},
+      }),
+    );
+    const frame = lastFrame()!;
+    expect(frame).toContain('Alpha');
+    expect(frame).toContain('✓ installed');
+  });
+
+  it('does not render ✓ installed on non-installed items', () => {
+    const { lastFrame } = render(
+      React.createElement(SelectableList, {
+        items: [
+          { id: 'a', title: 'Alpha' },
+          { id: 'b', title: 'Beta' },
+        ],
+        activeIndex: 0,
+        selectedIds: new Set<string>(),
+        installedIds: new Set(['a']),
+        onToggle: () => {},
+      }),
+    );
+    const lines = lastFrame()!.split('\n');
+    const betaLine = lines.find((l) => l.includes('Beta')) ?? '';
+    expect(betaLine).not.toContain('✓ installed');
+  });
+
+  it('does not render installed marker when installedIds is undefined', () => {
+    const { lastFrame } = render(
+      React.createElement(SelectableList, {
+        items: [{ id: 'a', title: 'Alpha' }],
+        activeIndex: 0,
+        selectedIds: new Set<string>(),
+        onToggle: () => {},
+      }),
+    );
+    expect(lastFrame()).not.toContain('✓ installed');
+  });
+
+  it('does not show [x] on installed items even if id is in selectedIds', () => {
+    const { lastFrame } = render(
+      React.createElement(SelectableList, {
+        items: [{ id: 'a', title: 'Alpha' }],
+        activeIndex: 0,
+        selectedIds: new Set(['a']),
+        installedIds: new Set(['a']),
+        onToggle: () => {},
+      }),
+    );
+    expect(lastFrame()).not.toContain('[x]');
+  });
 });

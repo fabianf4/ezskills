@@ -14,11 +14,14 @@ export class UninstallController {
   constructor(
     private readonly installedRepo: InstalledSkillsRepository,
     private readonly installer: InstallerService,
+    private readonly providerIds: ReadonlySet<string> | undefined,
     private readonly handlers: UninstallControllerHandlers,
   ) {}
 
   async loadInstalled(): Promise<InstalledSkill[]> {
-    return this.installedRepo.listByScope(this.state.getScope());
+    const all = await this.installedRepo.listByScope(this.state.getScope());
+    if (!this.providerIds) return all;
+    return all.filter((s) => this.providerIds!.has(s.providerId));
   }
 
   setScope(scope: Scope): void {

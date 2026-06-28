@@ -4,8 +4,6 @@ import type {
   IndexedSkill,
   InstalledSkill,
   SkillProvider,
-  Detector,
-  DetectionResult,
 } from '../index.js';
 
 describe('Scope', () => {
@@ -55,6 +53,16 @@ describe('SkillProvider', () => {
     expectTypeOf<SkillProvider['id']>().toEqualTypeOf<string>();
   });
 
+  it('exposes readonly label', () => {
+    expectTypeOf<SkillProvider>().toHaveProperty('label');
+    expectTypeOf<SkillProvider['label']>().toEqualTypeOf<string>();
+  });
+
+  it('exposes readonly isInstalled (boolean)', () => {
+    expectTypeOf<SkillProvider>().toHaveProperty('isInstalled');
+    expectTypeOf<SkillProvider['isInstalled']>().toEqualTypeOf<boolean>();
+  });
+
   it('exposes getInstalledSkills returning Promise<InstalledSkill[]>', () => {
     expectTypeOf<SkillProvider['getInstalledSkills']>().toBeFunction();
     expectTypeOf<SkillProvider['getInstalledSkills']>().parameters.toEqualTypeOf<[Scope]>();
@@ -71,22 +79,5 @@ describe('SkillProvider', () => {
     expectTypeOf<SkillProvider['uninstall']>().toBeFunction();
     expectTypeOf<SkillProvider['uninstall']>().parameters.toEqualTypeOf<[InstalledSkill]>();
     expectTypeOf<SkillProvider['uninstall']>().returns.toEqualTypeOf<Promise<void>>();
-  });
-});
-
-describe('Detector', () => {
-  it('exposes detect returning Promise<DetectionResult>', () => {
-    expectTypeOf<Detector['detect']>().toBeFunction();
-    expectTypeOf<Detector['detect']>().parameters.toEqualTypeOf<[string]>();
-    expectTypeOf<Detector['detect']>().returns.toEqualTypeOf<Promise<DetectionResult>>();
-  });
-});
-
-describe('DetectionResult', () => {
-  it('has technologies and suggestedSkillNames', () => {
-    expectTypeOf<DetectionResult>().toMatchObjectType<{
-      technologies: string[];
-      suggestedSkillNames: string[];
-    }>();
   });
 });

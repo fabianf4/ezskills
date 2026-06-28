@@ -97,4 +97,24 @@ describe('InstallScreen', () => {
     expect(lastFrame()).toContain('Tab to switch');
     expect(lastFrame()).not.toContain('g/l to switch');
   });
+
+  it('shows "✓ installed" next to skills that are in installedNames', () => {
+    const { lastFrame } = render(
+      React.createElement(InstallScreen, {
+        available: SAMPLE,
+        installedNames: new Set(['zod']),
+        scope: 'global',
+        onScopeChange: () => {},
+        onConfirm: () => {},
+        onBack: () => {},
+      }),
+    );
+    const frame = lastFrame()!;
+    expect(frame).toContain('✓ installed');
+    const lines = frame.split('\n');
+    const zodLine = lines.find((l) => l.includes('zod')) ?? '';
+    const reactLine = lines.find((l) => l.includes('react')) ?? '';
+    expect(zodLine).toContain('✓ installed');
+    expect(reactLine).not.toContain('✓ installed');
+  });
 });

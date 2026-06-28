@@ -15,4 +15,5 @@ export interface FsAdapter {
     options: { recursive: boolean },
   ): Promise<void>;
   rm(path: PathLike, options: { recursive: boolean; force: boolean }): Promise<void>;
+  existsSync(path: PathLike): boolean;
 }

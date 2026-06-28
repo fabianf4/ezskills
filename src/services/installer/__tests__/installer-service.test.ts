@@ -11,10 +11,12 @@ import type {
 
 function buildProvider(
   id: string,
-  overrides: Partial<Pick<SkillProvider, 'install' | 'uninstall' | 'getInstalledSkills'>> = {},
+  overrides: Partial<Pick<SkillProvider, 'install' | 'uninstall' | 'getInstalledSkills' | 'label'>> = {},
 ): SkillProvider {
   return {
     id,
+    label: id === 'opencode' ? 'OpenCode' : 'OpenClaw',
+    isInstalled: false,
     async getInstalledSkills(): Promise<InstalledSkill[]> {
       return [];
     },

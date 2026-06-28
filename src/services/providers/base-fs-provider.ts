@@ -14,11 +14,17 @@ export interface ProviderPaths {
 
 export abstract class BaseFsProvider implements SkillProvider {
   abstract readonly id: string;
+  abstract readonly label: string;
 
   protected constructor(
     protected readonly paths: ProviderPaths,
     protected readonly fs: FsAdapter,
+    private readonly installMarker: string,
   ) {}
+
+  get isInstalled(): boolean {
+    return this.fs.existsSync(this.installMarker);
+  }
 
   async install(skill: IndexedSkill, scope: Scope): Promise<void> {
     const destination = this.destinationFor(skill.name, scope);

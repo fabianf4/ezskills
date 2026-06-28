@@ -12,12 +12,14 @@ export interface SelectableListProps {
   activeIndex: number;
   selectedIds: Set<string>;
   onToggle: (id: string) => void;
+  installedIds?: Set<string>;
 }
 
 export const SelectableList: React.FC<SelectableListProps> = ({
   items,
   activeIndex,
   selectedIds,
+  installedIds,
 }) => {
   if (items.length === 0) {
     return React.createElement(Box, { flexDirection: 'column' },
@@ -30,7 +32,8 @@ export const SelectableList: React.FC<SelectableListProps> = ({
     { flexDirection: 'column' },
     items.map((item, idx) => {
       const isActive = idx === activeIndex;
-      const isSelected = selectedIds.has(item.id);
+      const isInstalled = installedIds?.has(item.id) === true;
+      const isSelected = !isInstalled && selectedIds.has(item.id);
       const cursor = isActive ? '> ' : '  ';
       const check = isSelected ? '[x]' : '[ ]';
 
@@ -39,13 +42,20 @@ export const SelectableList: React.FC<SelectableListProps> = ({
         { key: item.id, flexDirection: 'column' },
         React.createElement(
           Text,
-          { color: isActive ? 'cyan' : undefined, bold: isActive },
+          isInstalled
+            ? { dimColor: true }
+            : { color: isActive ? 'cyan' : undefined, bold: isActive },
           `${cursor}${check} ${item.title}`,
+          isInstalled
+            ? React.createElement(Text, { dimColor: true }, ' ✓ installed')
+            : null,
         ),
         isActive && item.subtitle
           ? React.createElement(
               Text,
-              { dimColor: true, color: 'cyan' },
+              isInstalled
+                ? { dimColor: true }
+                : { dimColor: true, color: 'cyan' },
               `    ${item.subtitle}`,
             )
           : null,

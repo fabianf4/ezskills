@@ -17,7 +17,7 @@ export class InstallController {
     private readonly skillRepo: SkillRepository,
     private readonly installedRepo: InstalledSkillsRepository,
     private readonly installer: InstallerService,
-    private readonly providerId: string,
+    private readonly providerIds: ReadonlySet<string>,
     private readonly handlers: InstallControllerHandlers,
   ) {}
 
@@ -26,8 +26,12 @@ export class InstallController {
   }
 
   async loadInstalledNames(): Promise<Set<string>> {
-    const installed = await this.installedRepo.listByProvider(this.providerId);
-    return new Set(installed.map((s) => s.name));
+    const names = new Set<string>();
+    for (const id of this.providerIds) {
+      const installed = await this.installedRepo.listByProvider(id);
+      for (const s of installed) names.add(s.name);
+    }
+    return names;
   }
 
   setScope(scope: Scope): void {
@@ -59,9 +63,19 @@ export class InstallController {
       this.handlers.onError('No skills selected');
       return;
     }
+    if (this.providerIds.size === 0) {
+      this.handlers.onError('No provider selected');
+      return;
+    }
     try {
-      const result = await this.installer.installMany(skills, this.state.getScope(), this.providerId);
-      this.handlers.onResult(result);
+      const aggregated = { installed: [], skipped: [], failed: [] } as InstallResult;
+      for (const id of this.providerIds) {
+        const result = await this.installer.installMany(skills, this.state.getScope(), id);
+        aggregated.installed.push(...result.installed);
+        aggregated.skipped.push(...result.skipped);
+        aggregated.failed.push(...result.failed);
+      }
+      this.handlers.onResult(aggregated);
     } catch (err) {
       this.handlers.onError((err as Error).message);
     }

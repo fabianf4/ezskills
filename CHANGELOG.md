@@ -4,13 +4,12 @@
 
 Initial release.
 
-- TUI with Ink + React for managing skills for OpenCode and OpenClaw
-- MVC architecture with DI
-- TDD: 185 tests, 99.45% coverage on business logic
-- Features:
-  - Detect and index skills from `skills/`
-  - Install globally or locally
-  - Uninstall globally or locally
-  - Multi-select with search
-  - Custom paths via environment variables
-- Stub detector (AutoSkills de midudev pending integration)
+- TUI built with Ink + React for managing skills for OpenCode and OpenClaw
+- Multi-provider install and uninstall (OpenCode, OpenClaw)
+- Multi-select with vim keybindings and search
+- Bundled catalog ships inside the package — works out of the box
+- Global vs. local scope, switchable per session
+- 268 tests, ~99% statement coverage on business logic (controllers, services, repositories, models)
+- Catalog resolves in cascade: `EZSKILLS_SKILLS_DIR` → `<cwd>/catalog` → bundled
+- CLI flags: `--version`, `--help` (and short forms `-v`, `-h`)
+- Installs as a global binary: `npm install -g .`

@@ -1,4 +1,4 @@
-export type MenuScreen = 'main' | 'install' | 'uninstall' | 'auto';
+export type MenuScreen = 'main' | 'pickProvider' | 'install' | 'uninstall';
 
 export class MenuState {
   private current: MenuScreen = 'main';

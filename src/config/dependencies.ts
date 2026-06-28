@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
+
 import { resolvePaths, type AppPaths } from './paths.js';
 import { SkillIndexer } from '../services/indexer/skill-indexer.js';
 import { SkillRepository } from '../repositories/skill-repository.js';
@@ -9,8 +10,7 @@ import { OpenCodeProvider } from '../services/providers/opencode-provider.js';
 import { OpenClawProvider } from '../services/providers/openclaw-provider.js';
 import { InstallerService } from '../services/installer/installer-service.js';
 import { SearchService } from '../services/search/search-service.js';
-import { StubDetector } from '../services/detector/stub-detector.js';
-import type { SkillProvider } from '../types/index.js';
+import type { ProviderListItem, SkillProvider } from '../types/index.js';
 
 export interface AppDependencies {
   paths: AppPaths;
@@ -19,7 +19,8 @@ export interface AppDependencies {
   installedRepo: InstalledSkillsRepository;
   installer: InstallerService;
   providers: Map<string, SkillProvider>;
-  detector: StubDetector;
+  listProviders: () => ProviderListItem[];
+  listInstalledProviders: () => ProviderListItem[];
 }
 
 export async function buildDependencies(cwd: string = process.cwd()): Promise<AppDependencies> {
@@ -38,7 +39,14 @@ export async function buildDependencies(cwd: string = process.cwd()): Promise<Ap
 
   const installedRepo = new InstalledSkillsRepository([opencode, openclaw]);
   const installer = new InstallerService(providers, installedRepo);
-  const detector = new StubDetector();
+
+  const listProviders = (): ProviderListItem[] =>
+    Array.from(providers.values()).map((p) => ({ id: p.id, label: p.label }));
+
+  const listInstalledProviders = (): ProviderListItem[] =>
+    Array.from(providers.values())
+      .filter((p) => p.isInstalled)
+      .map((p) => ({ id: p.id, label: p.label }));
 
   return {
     paths,
@@ -47,7 +55,8 @@ export async function buildDependencies(cwd: string = process.cwd()): Promise<Ap
     installedRepo,
     installer,
     providers,
-    detector,
+    listProviders,
+    listInstalledProviders,
   };
 }
 
@@ -78,6 +87,7 @@ function fsPromisesAdapter() {
       import('node:fs/promises').then((m) => m.cp(s, d, opts)),
     rm: (p: string, opts: { recursive: boolean; force: boolean }) =>
       import('node:fs/promises').then((m) => m.rm(p, opts)),
+    existsSync,
   };
 }
 

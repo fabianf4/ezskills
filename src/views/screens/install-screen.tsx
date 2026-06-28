@@ -168,6 +168,7 @@ export const InstallScreen: React.FC<InstallScreenProps> = ({
           items: visibleItems,
           activeIndex: windowedActiveIndex,
           selectedIds: selected,
+          installedIds: installedNames,
           onToggle: (id: string) => {
             const next = new Set(selected);
             if (next.has(id)) next.delete(id);

@@ -1,5 +1,5 @@
 {
-  "name": "ezskills",
+  "name": "@fabianf4/ezskills",
   "version": "0.1.0",
   "description": "TUI to install and uninstall skills for OpenCode and OpenClaw",
   "type": "module",
@@ -9,13 +9,17 @@
   "main": "./dist/index.js",
   "files": [
     "dist",
-    "skills",
-    "README.md"
+    "catalog",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "dev": "tsx src/index.ts",
     "start": "node dist/index.js",
     "build": "tsc -p tsconfig.build.json",
+    "postbuild": "chmod +x dist/index.js",
+    "prepublishOnly": "pnpm test && pnpm typecheck && pnpm build",
     "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -27,6 +31,16 @@
     "opencode",
     "openclaw"
   ],
+  "license": "MIT",
+  "author": "fabianf4",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fabianf4/ezskills.git"
+  },
+  "bugs": {
+    "url": "https://github.com/fabianf4/ezskills/issues"
+  },
+  "homepage": "https://github.com/fabianf4/ezskills#readme",
   "engines": {
     "node": ">=20"
   },
