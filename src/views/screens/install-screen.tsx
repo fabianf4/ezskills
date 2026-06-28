@@ -1,0 +1,186 @@
+import React, { useEffect, useRef, useState } from 'react';
+import { Box, Text, useInput } from 'ink';
+import { SelectableList, type SelectableListItem } from '../components/selectable-list.js';
+import { SearchInput } from '../components/search-input.js';
+import { StatusMessage } from '../components/status-message.js';
+import { KEY_UP, KEY_DOWN, KEY_SPACE, KEY_ENTER, KEY_ESC, KEY_S, KEY_TAB, KEY_J, KEY_K, KEY_G_TOP, KEY_G_BOTTOM } from '../../controllers/keybindings.js';
+import type { IndexedSkill, Scope } from '../../types/index.js';
+import { sortByName, windowItems } from '../pagination.js';
+import { applyKeyToText, type TextState } from '../components/search-input-logic.js';
+
+export interface InstallScreenProps {
+  available: IndexedSkill[];
+  installedNames: Set<string>;
+  scope: Scope;
+  onScopeChange: (s: Scope) => void;
+  onConfirm: (skills: IndexedSkill[]) => void;
+  onBack: () => void;
+}
+
+export const InstallScreen: React.FC<InstallScreenProps> = ({
+  available,
+  installedNames,
+  scope,
+  onScopeChange,
+  onConfirm,
+  onBack,
+}) => {
+  const [query, setQuery] = useState('');
+  const [cursor, setCursor] = useState(0);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [status, setStatus] = useState<{ kind: 'info' | 'error' | 'success'; text: string } | null>(null);
+
+  const queryRef = useRef(query);
+  const cursorRef = useRef(cursor);
+  const searchFocusedRef = useRef(searchFocused);
+  const lastEmittedValueRef = useRef(query);
+  queryRef.current = query;
+  cursorRef.current = cursor;
+  searchFocusedRef.current = searchFocused;
+
+  useEffect(() => {
+    if (query !== lastEmittedValueRef.current) {
+      setCursor(query.length);
+    }
+    lastEmittedValueRef.current = query;
+  }, [query]);
+
+  const filtered = available.filter((s) => {
+    const q = query.toLowerCase().trim();
+    if (!q) return true;
+    return (
+      s.name.toLowerCase().includes(q) ||
+      s.description.toLowerCase().includes(q) ||
+      s.technologies.some((t) => t.toLowerCase().includes(q))
+    );
+  });
+
+  const sorted = sortByName(filtered);
+
+  const items: SelectableListItem[] = sorted.map((s) => ({
+    id: s.name,
+    title: s.name,
+    subtitle: s.description,
+  }));
+
+  const { visible: visibleItems, offset } = windowItems(items, activeIndex, 5, 5);
+  const windowedActiveIndex = activeIndex - offset;
+
+  useInput((input, key) => {
+    if (searchFocusedRef.current) {
+      if (key.escape) {
+        setSearchFocused(false);
+        return;
+      }
+      if (key.return) {
+        if (selected.size === 0) {
+          setStatus({ kind: 'error', text: 'No skills selected' });
+          return;
+        }
+        const toInstall = available.filter((s) => selected.has(s.name));
+        onConfirm(toInstall);
+        return;
+      }
+      const next: TextState = applyKeyToText(
+        { value: queryRef.current, cursor: cursorRef.current },
+        input,
+        key,
+      );
+      if (next.value !== queryRef.current) {
+        lastEmittedValueRef.current = next.value;
+        setQuery(next.value);
+        setActiveIndex(0);
+      }
+      if (next.cursor !== cursorRef.current) {
+        setCursor(next.cursor);
+      }
+      return;
+    }
+
+    if (key.escape || input === KEY_ESC) {
+      onBack();
+      return;
+    }
+    if (input === KEY_S) {
+      setSearchFocused(true);
+      return;
+    }
+    if (key.tab || input === KEY_TAB) onScopeChange(scope === 'global' ? 'local' : 'global');
+    else if (key.upArrow || input === KEY_UP || input === KEY_K) {
+      setActiveIndex((i) => Math.max(0, i - 1));
+    } else if (key.downArrow || input === KEY_DOWN || input === KEY_J) {
+      setActiveIndex((i) => Math.min(Math.max(0, items.length - 1), i + 1));
+    } else if (input === KEY_G_TOP) {
+      setActiveIndex(0);
+    } else if (input === KEY_G_BOTTOM) {
+      setActiveIndex(Math.max(0, items.length - 1));
+    } else if (input === ' ' || input === KEY_SPACE) {
+      const item = items[activeIndex];
+      if (item && !installedNames.has(item.id)) {
+        const next = new Set(selected);
+        if (next.has(item.id)) next.delete(item.id);
+        else next.add(item.id);
+        setSelected(next);
+      }
+    } else if (key.return || input === KEY_ENTER) {
+      if (selected.size === 0) {
+        setStatus({ kind: 'error', text: 'No skills selected' });
+        return;
+      }
+      const toInstall = available.filter((s) => selected.has(s.name));
+      onConfirm(toInstall);
+    }
+  });
+
+  return React.createElement(
+    Box,
+    { flexDirection: 'column' },
+    React.createElement(Text, { bold: true }, 'Install Skills'),
+    React.createElement(
+      Text,
+      null,
+      React.createElement(Text, { dimColor: true }, '  Scope: '),
+      React.createElement(
+        Text,
+        { bold: true, color: scope === 'global' ? 'yellow' : 'green' },
+        scope === 'global' ? 'Global' : 'Local',
+      ),
+        scope === 'global'
+          ? React.createElement(Text, { dimColor: true }, ' (not recommended)')
+          : null,
+      React.createElement(Text, { dimColor: true }, '   (Tab to switch)'),
+    ),
+    React.createElement(
+      Text,
+      { dimColor: true },
+      '  s search  j/k move  g/G top/bottom  space select  enter install  esc back  Tab switch',
+    ),
+    React.createElement(SearchInput, {
+      value: query,
+      focused: searchFocused,
+    }),
+    status ? React.createElement(StatusMessage, status) : null,
+    items.length === 0
+      ? React.createElement(Text, { dimColor: true }, 'No skills found')
+      : React.createElement(SelectableList, {
+          items: visibleItems,
+          activeIndex: windowedActiveIndex,
+          selectedIds: selected,
+          onToggle: (id: string) => {
+            const next = new Set(selected);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            setSelected(next);
+          },
+        }),
+    React.createElement(
+      Text,
+      { dimColor: true },
+      items.length === 0
+        ? ''
+        : `  ${offset + 1}-${Math.min(offset + visibleItems.length, items.length)} of ${items.length}`,
+    ),
+  );
+};

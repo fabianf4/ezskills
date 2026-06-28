@@ -1,0 +1,51 @@
+{
+  "name": "ezskills",
+  "version": "0.1.0",
+  "description": "TUI to install and uninstall skills for OpenCode and OpenClaw",
+  "type": "module",
+  "bin": {
+    "ezskills": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "files": [
+    "dist",
+    "skills",
+    "README.md"
+  ],
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "keywords": [
+    "tui",
+    "skills",
+    "opencode",
+    "openclaw"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "ink": "^5.0.1",
+    "memfs": "^4.14.0",
+    "react": "^18.3.1",
+    "yaml": "^2.6.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/react": "^18.3.18",
+    "@types/react-test-renderer": "^18.3.0",
+    "@vitest/coverage-v8": "^2.1.8",
+    "ink-testing-library": "^4.0.0",
+    "react-test-renderer": "^18.3.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
