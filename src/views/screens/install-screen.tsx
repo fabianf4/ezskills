@@ -7,6 +7,7 @@ import { KEY_UP, KEY_DOWN, KEY_SPACE, KEY_ENTER, KEY_ESC, KEY_S, KEY_TAB, KEY_J,
 import type { IndexedSkill, Scope } from '../../types/index.js';
 import { sortByName, windowItems } from '../pagination.js';
 import { applyKeyToText, type TextState } from '../components/search-input-logic.js';
+import { useSkillSearch } from '../hooks/use-skill-search.js';
 
 export interface InstallScreenProps {
   available: IndexedSkill[];
@@ -47,15 +48,7 @@ export const InstallScreen: React.FC<InstallScreenProps> = ({
     lastEmittedValueRef.current = query;
   }, [query]);
 
-  const filtered = available.filter((s) => {
-    const q = query.toLowerCase().trim();
-    if (!q) return true;
-    return (
-      s.name.toLowerCase().includes(q) ||
-      s.description.toLowerCase().includes(q) ||
-      s.technologies.some((t) => t.toLowerCase().includes(q))
-    );
-  });
+  const filtered = useSkillSearch(available, query);
 
   const sorted = sortByName(filtered);
 
