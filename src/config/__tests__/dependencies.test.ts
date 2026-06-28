@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { mkdtempSync, writeFileSync, rmSync, mkdirSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { buildDependencies } from '../dependencies.js';
 
@@ -14,7 +14,6 @@ describe('buildDependencies', () => {
       '---\nname: zod\ndescription: Zod\n---\n# zod',
     );
     process.env['EZSKILLS_SKILLS_DIR'] = skillsDir;
-    process.env['EZSKILLS_INDEX_PATH'] = join(cwd, '.ezskills', 'index.json');
     process.env['EZSKILLS_OPENCODE_GLOBAL'] = join(cwd, 'oc-global');
     process.env['EZSKILLS_OPENCODE_LOCAL'] = join(cwd, 'oc-local');
     process.env['EZSKILLS_OPENCLAW_GLOBAL'] = join(cwd, 'claw-global');
@@ -54,12 +53,13 @@ describe('buildDependencies', () => {
       join(skillsDir, 'react', 'SKILL.md'),
       '---\nname: react\ndescription: R\n---\n# react',
     );
-    const indexPath = join(cwd, '.ezskills', 'index.json');
-    mkdirSync(dirname(indexPath), { recursive: true });
-    writeFileSync(indexPath, JSON.stringify([{ name: 'preexisting', description: 'P', technologies: [], path: '/preexisting' }]));
+    const indexPath = join(skillsDir, 'index.json');
+    writeFileSync(
+      indexPath,
+      JSON.stringify([{ name: 'preexisting', description: 'P', technologies: [], path: '/preexisting' }]),
+    );
 
     process.env['EZSKILLS_SKILLS_DIR'] = skillsDir;
-    process.env['EZSKILLS_INDEX_PATH'] = indexPath;
     process.env['EZSKILLS_OPENCODE_GLOBAL'] = join(cwd, 'oc-global');
     process.env['EZSKILLS_OPENCODE_LOCAL'] = join(cwd, 'oc-local');
     process.env['EZSKILLS_OPENCLAW_GLOBAL'] = join(cwd, 'claw-global');
@@ -79,7 +79,6 @@ describe('buildDependencies', () => {
     const skillsDir = join(cwd, 'catalog');
     mkdirSync(skillsDir, { recursive: true });
     process.env['EZSKILLS_SKILLS_DIR'] = skillsDir;
-    process.env['EZSKILLS_INDEX_PATH'] = join(cwd, '.ezskills', 'index.json');
     process.env['EZSKILLS_OPENCODE_GLOBAL'] = join(cwd, '.config', 'opencode', 'skills');
     process.env['EZSKILLS_OPENCODE_LOCAL'] = join(cwd, '.opencode', 'skills');
     process.env['EZSKILLS_OPENCLAW_GLOBAL'] = join(cwd, '.openclaw', 'skills');

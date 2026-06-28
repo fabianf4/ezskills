@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { SelectableList, type SelectableListItem } from '../components/selectable-list.js';
 import { ConfirmDialog } from '../components/confirm-dialog.js';
 import { KEY_UP, KEY_DOWN, KEY_SPACE, KEY_ENTER, KEY_ESC, KEY_TAB, KEY_J, KEY_K, KEY_G_TOP, KEY_G_BOTTOM } from '../../controllers/keybindings.js';
-import type { InstalledSkill, Scope } from '../../types/index.js';
+import type { IndexedSkill, InstalledSkill, Scope } from '../../types/index.js';
 import { sortByName, windowItems } from '../pagination.js';
 
 export interface UninstallScreenProps {
   installed: InstalledSkill[];
+  available: IndexedSkill[];
   scope: Scope;
   onScopeChange: (s: Scope) => void;
   onConfirm: (skills: InstalledSkill[]) => void;
@@ -16,6 +17,7 @@ export interface UninstallScreenProps {
 
 export const UninstallScreen: React.FC<UninstallScreenProps> = ({
   installed,
+  available,
   scope,
   onScopeChange,
   onConfirm,
@@ -25,12 +27,22 @@ export const UninstallScreen: React.FC<UninstallScreenProps> = ({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [confirming, setConfirming] = useState(false);
 
+  const descriptions = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const skill of available) {
+      if (skill.description.length > 0) {
+        map.set(skill.name, skill.description);
+      }
+    }
+    return map;
+  }, [available]);
+
   const sorted = sortByName(installed);
 
   const items: SelectableListItem[] = sorted.map((s) => ({
     id: s.name,
     title: s.name,
-    subtitle: s.providerId,
+    subtitle: descriptions.get(s.name) ?? '',
   }));
 
   const { visible: visibleItems, offset } = windowItems(items, activeIndex, 5, 5);

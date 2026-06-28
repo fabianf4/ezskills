@@ -92,8 +92,11 @@ export const App: React.FC<AppProps> = ({ deps }) => {
     if (screen === 'uninstall' && uninstallController) {
       uninstallController.setScope(scope);
       uninstallController.loadInstalled().then(setInstalled);
+      if (available.length === 0) {
+        deps.skillRepo.getAll().then(setAvailable);
+      }
     }
-  }, [screen, uninstallController, scope]);
+  }, [screen, uninstallController, scope, deps.skillRepo, available.length]);
 
   if (exitRequested) {
     return React.createElement(Text, { dimColor: true }, 'Goodbye!');
@@ -136,6 +139,7 @@ export const App: React.FC<AppProps> = ({ deps }) => {
       status ? React.createElement(StatusMessage, status) : null,
       React.createElement(UninstallScreen, {
         installed,
+        available,
         scope,
         onScopeChange: (s) => setScope(s),
         onConfirm: async (skills) => {
