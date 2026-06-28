@@ -10,6 +10,7 @@
   "files": [
     "dist",
     "catalog",
+    "!catalog/index.json",
     "README.md",
     "LICENSE",
     "CHANGELOG.md"
