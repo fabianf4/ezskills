@@ -1,0 +1,7 @@
+# Treat bundled skill content as vendored so github-linguist does not
+# misdetect the project's main language. Files under catalog/ ship with
+# ezskills as LLM context (SKILL.md, reference code, snippets) and are
+# not part of ezskills' own source. Without this, vendored Ruby in some
+# skills (e.g. the Stripe Ruby SDK inside generating-sorbet) makes
+# GitHub report Ruby as the dominant language of the repo.
+catalog/** linguist-vendored
