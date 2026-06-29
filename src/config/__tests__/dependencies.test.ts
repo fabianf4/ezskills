@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { buildDependencies } from '../dependencies.js';
 
 describe('buildDependencies', () => {
-  it('creates an index file when missing and wires all dependencies', async () => {
+  it('throws with actionable error when catalog index is missing (no auto-generation)', async () => {
     const cwd = mkdtempSync(join(tmpdir(), 'ezskills-test-'));
     const skillsDir = join(cwd, 'catalog');
     mkdirSync(join(skillsDir, 'zod'), { recursive: true });
@@ -20,32 +20,13 @@ describe('buildDependencies', () => {
     process.env['EZSKILLS_OPENCLAW_LOCAL'] = join(cwd, 'claw-local');
 
     try {
-      const deps = await buildDependencies(cwd);
-      expect(deps.skillRepo).toBeDefined();
-      expect(deps.searchService).toBeDefined();
-      expect(deps.installedRepo).toBeDefined();
-      expect(deps.installer).toBeDefined();
-      expect(deps.providers.size).toBe(2);
-      expect(deps.providers.has('opencode')).toBe(true);
-      expect(deps.providers.has('openclaw')).toBe(true);
-      expect(deps.listProviders).toBeDefined();
-      const list = deps.listProviders();
-      expect(list).toHaveLength(2);
-      expect(list).toEqual(
-        expect.arrayContaining([
-          { id: 'opencode', label: 'OpenCode' },
-          { id: 'openclaw', label: 'OpenClaw' },
-        ]),
-      );
-
-      const skills = await deps.skillRepo.getAll();
-      expect(skills.map((s) => s.name)).toContain('zod');
+      await expect(buildDependencies(cwd)).rejects.toThrow(/catalog index is missing/);
     } finally {
       rmSync(cwd, { recursive: true, force: true });
     }
   });
 
-  it('skips index generation when index already exists', async () => {
+  it('loads skills from existing index.json without auto-generating', async () => {
     const cwd = mkdtempSync(join(tmpdir(), 'ezskills-skip-'));
     const skillsDir = join(cwd, 'catalog');
     mkdirSync(join(skillsDir, 'react'), { recursive: true });
@@ -78,6 +59,7 @@ describe('buildDependencies', () => {
     const cwd = mkdtempSync(join(tmpdir(), 'ezskills-detect-'));
     const skillsDir = join(cwd, 'catalog');
     mkdirSync(skillsDir, { recursive: true });
+    writeFileSync(join(skillsDir, 'index.json'), '[]');
     process.env['EZSKILLS_SKILLS_DIR'] = skillsDir;
     process.env['EZSKILLS_OPENCODE_GLOBAL'] = join(cwd, '.config', 'opencode', 'skills');
     process.env['EZSKILLS_OPENCODE_LOCAL'] = join(cwd, '.opencode', 'skills');

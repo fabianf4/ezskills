@@ -1,9 +1,15 @@
-import { describe, it, expect } from 'vitest';
-import { resolvePaths, getBundledSkillsDir, resolveSkillsDir } from '../paths.js';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import {
+  resolvePaths,
+  getBundledSkillsDir,
+  resolveSkillsDir,
+  getPackageRoot,
+  resetPackageRootCache,
+} from '../paths.js';
 import { join, dirname, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
-import { pathToFileURL } from 'node:url';
-import { mkdtempSync, mkdirSync, rmSync } from 'node:fs';
+import { pathToFileURL, fileURLToPath } from 'node:url';
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync, existsSync } from 'node:fs';
 
 describe('resolvePaths', () => {
   it('returns a complete AppPaths object with indexPath inside the skillsDir', () => {
@@ -93,19 +99,124 @@ describe('resolveSkillsDir fallback cascade', () => {
   });
 });
 
-describe('getBundledSkillsDir', () => {
-  it('resolves to ../../catalog relative to the path module file (2 levels deep in the package)', () => {
-    const fakeModuleFile = join('/pkg', 'dist', 'config', 'paths.js');
-    const fakeUrl = pathToFileURL(fakeModuleFile).href;
-    const result = getBundledSkillsDir(fakeUrl);
-    expect(result).toBe(resolve('/pkg', 'catalog'));
-    expect(dirname(result)).toBe('/pkg');
+describe('getPackageRoot', () => {
+  beforeEach(() => {
+    resetPackageRootCache();
   });
 
-  it('matches the source layout src/config/paths.ts (pnpm dev)', () => {
-    const fakeModuleFile = join('/repo', 'src', 'config', 'paths.ts');
-    const fakeUrl = pathToFileURL(fakeModuleFile).href;
-    const result = getBundledSkillsDir(fakeUrl);
-    expect(result).toBe(resolve('/repo', 'catalog'));
+  it('resolves to the parent of the bundled entry (dist/index.js -> dist/ -> package root)', () => {
+    const tmp = mkdtempSync(join(tmpdir(), 'ezskills-pkgroot-bundle-'));
+    try {
+      mkdirSync(join(tmp, 'dist'), { recursive: true });
+      writeFileSync(join(tmp, 'package.json'), '{}');
+      const fakeModuleFile = join(tmp, 'dist', 'index.js');
+      const fakeUrl = pathToFileURL(fakeModuleFile).href;
+      expect(getPackageRoot(fakeUrl)).toBe(tmp);
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it('resolves to the parent of src/index.ts (pnpm dev)', () => {
+    const tmp = mkdtempSync(join(tmpdir(), 'ezskills-pkgroot-src-'));
+    try {
+      mkdirSync(join(tmp, 'src'), { recursive: true });
+      writeFileSync(join(tmp, 'package.json'), '{}');
+      const fakeModuleFile = join(tmp, 'src', 'index.ts');
+      const fakeUrl = pathToFileURL(fakeModuleFile).href;
+      expect(getPackageRoot(fakeUrl)).toBe(tmp);
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it('falls back to walking up when parent has no package.json', () => {
+    const tmp = mkdtempSync(join(tmpdir(), 'ezskills-pkgroot-walk-'));
+    try {
+      mkdirSync(join(tmp, 'src', 'config'), { recursive: true });
+      writeFileSync(join(tmp, 'package.json'), '{}');
+      const fakeModuleFile = join(tmp, 'src', 'config', 'paths.ts');
+      const fakeUrl = pathToFileURL(fakeModuleFile).href;
+      expect(getPackageRoot(fakeUrl)).toBe(tmp);
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('getBundledSkillsDir', () => {
+  beforeEach(() => {
+    resetPackageRootCache();
+  });
+
+  it('resolves to ../catalog relative to the bundled entry (dist/index.js)', () => {
+    const tmp = mkdtempSync(join(tmpdir(), 'ezskills-catalog-bundle-'));
+    try {
+      mkdirSync(join(tmp, 'dist'), { recursive: true });
+      writeFileSync(join(tmp, 'package.json'), '{}');
+      const fakeModuleFile = join(tmp, 'dist', 'index.js');
+      const fakeUrl = pathToFileURL(fakeModuleFile).href;
+      const result = getBundledSkillsDir(fakeUrl);
+      expect(result).toBe(resolve(tmp, 'catalog'));
+      expect(dirname(result)).toBe(tmp);
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it('matches the source layout src/index.ts (pnpm dev)', () => {
+    const tmp = mkdtempSync(join(tmpdir(), 'ezskills-catalog-src-'));
+    try {
+      mkdirSync(join(tmp, 'src'), { recursive: true });
+      writeFileSync(join(tmp, 'package.json'), '{}');
+      const fakeModuleFile = join(tmp, 'src', 'index.ts');
+      const fakeUrl = pathToFileURL(fakeModuleFile).href;
+      const result = getBundledSkillsDir(fakeUrl);
+      expect(result).toBe(resolve(tmp, 'catalog'));
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('getPackageRoot default argument', () => {
+  let originalCwd: string;
+
+  beforeEach(() => {
+    resetPackageRootCache();
+    originalCwd = process.cwd();
+  });
+
+  afterEach(() => {
+    process.chdir(originalCwd);
+    resetPackageRootCache();
+  });
+
+  it('uses import.meta.url when called with no arguments (not process.cwd())', () => {
+    const root = getPackageRoot();
+    expect(typeof root).toBe('string');
+    expect(existsSync(join(root, 'package.json'))).toBe(true);
+  });
+
+  it('default-argument root is an ancestor of the calling module, regardless of cwd', () => {
+    const root = getPackageRoot();
+    const callerDir = dirname(fileURLToPath(import.meta.url));
+    expect(callerDir.startsWith(root)).toBe(true);
+  });
+
+  it('returns the same root when called from a foreign cwd (e.g. /tmp)', () => {
+    const tmp = mkdtempSync(join(tmpdir(), 'ezskills-foreign-cwd-'));
+    try {
+      process.chdir(tmp);
+      resetPackageRootCache();
+      const root = getPackageRoot();
+      const callerDir = dirname(fileURLToPath(import.meta.url));
+      expect(callerDir.startsWith(root)).toBe(true);
+      expect(root).not.toBe(tmp);
+      expect(root).not.toBe(dirname(tmp));
+    } finally {
+      process.chdir(originalCwd);
+      rmSync(tmp, { recursive: true, force: true });
+    }
   });
 });

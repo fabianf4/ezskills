@@ -1,4 +1,5 @@
 import { homedir } from 'node:os';
+import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -14,9 +15,36 @@ function envOr(key: string, fallback: string): string {
   return v && v.length > 0 ? v : fallback;
 }
 
-export function getBundledSkillsDir(importMetaUrl: string = import.meta.url): string {
-  const here = dirname(fileURLToPath(importMetaUrl));
-  return resolve(here, '..', '..', 'catalog');
+let cachedPackageRoot: string | null = null;
+
+export function resetPackageRootCache(): void {
+  cachedPackageRoot = null;
+}
+
+export function getPackageRoot(importMetaUrl: string = import.meta.url): string {
+  if (cachedPackageRoot !== null) return cachedPackageRoot;
+  const start = dirname(fileURLToPath(importMetaUrl));
+  const parent = resolve(start, '..');
+  if (existsSync(join(parent, 'package.json'))) {
+    cachedPackageRoot = parent;
+    return parent;
+  }
+  let current = start;
+  while (true) {
+    if (existsSync(join(current, 'package.json'))) {
+      cachedPackageRoot = current;
+      return current;
+    }
+    const next = dirname(current);
+    if (next === current) break;
+    current = next;
+  }
+  cachedPackageRoot = parent;
+  return parent;
+}
+
+export function getBundledSkillsDir(importMetaUrl?: string): string {
+  return resolve(getPackageRoot(importMetaUrl), 'catalog');
 }
 
 export function resolveSkillsDir(

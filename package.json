@@ -1,6 +1,6 @@
 {
   "name": "@fabianf4/ezskills",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "TUI to install and uninstall skills for OpenCode and OpenClaw",
   "type": "module",
   "bin": {
@@ -8,9 +8,9 @@
   },
   "main": "./dist/index.js",
   "files": [
-    "dist",
+    "dist/index.js",
+    "dist/index.js.map",
     "catalog",
-    "!catalog/index.json",
     "README.md",
     "LICENSE",
     "CHANGELOG.md"
@@ -18,9 +18,10 @@
   "scripts": {
     "dev": "tsx src/index.ts",
     "start": "node dist/index.js",
-    "build": "tsc -p tsconfig.build.json",
+    "build:index": "tsx scripts/build-index.ts",
+    "build": "rm -rf dist && esbuild src/index.ts --bundle --platform=node --target=node20 --format=esm --outfile=dist/index.js --alias:react-devtools-core=./scripts/react-devtools-core-stub.js --banner:js=\"const require = (await import('node:module')).createRequire(import.meta.url);\" --sourcemap && chmod +x dist/index.js",
     "postbuild": "chmod +x dist/index.js",
-    "prepublishOnly": "npm run test && npm run typecheck && npm run build",
+    "prepublishOnly": "pnpm test && pnpm typecheck && pnpm build:index && pnpm build",
     "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -59,6 +60,7 @@
     "@types/react": "^18.3.18",
     "@types/react-test-renderer": "^18.3.0",
     "@vitest/coverage-v8": "^2.1.8",
+    "esbuild": "^0.24.0",
     "ink-testing-library": "^4.0.0",
     "react-test-renderer": "^18.3.1",
     "tsx": "^4.19.2",

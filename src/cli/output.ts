@@ -1,10 +1,9 @@
 import { readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
+import { getPackageRoot } from '../config/paths.js';
 
 function getPackageVersion(): string {
-  const here = dirname(fileURLToPath(import.meta.url));
-  const pkgPath = join(here, '..', '..', 'package.json');
+  const pkgPath = join(getPackageRoot(), 'package.json');
   const raw = readFileSync(pkgPath, 'utf8');
   const parsed = JSON.parse(raw) as { version?: unknown };
   if (typeof parsed.version !== 'string') {

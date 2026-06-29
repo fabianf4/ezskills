@@ -2,7 +2,6 @@ import { existsSync } from 'node:fs';
 
 import { resolvePaths, type AppPaths } from './paths.js';
 import { createFsPromisesAdapter } from './fs-promises-adapter.js';
-import { SkillIndexer } from '../services/indexer/skill-indexer.js';
 import { SkillRepository } from '../repositories/skill-repository.js';
 import { InstalledSkillsRepository } from '../repositories/installed-skills-repository.js';
 import { OpenCodeProvider } from '../services/providers/opencode-provider.js';
@@ -24,7 +23,7 @@ export interface AppDependencies {
 
 export async function buildDependencies(cwd: string = process.cwd()): Promise<AppDependencies> {
   const paths = resolvePaths(cwd);
-  await ensureIndexFile(paths);
+  assertIndexExists(paths.indexPath);
 
   const fs = createFsPromisesAdapter();
   const skillRepo = new SkillRepository(paths.indexPath, fs);
@@ -60,14 +59,13 @@ export async function buildDependencies(cwd: string = process.cwd()): Promise<Ap
   };
 }
 
-async function ensureIndexFile(paths: AppPaths): Promise<void> {
-  if (existsSync(paths.indexPath)) {
-    return;
+function assertIndexExists(indexPath: string): void {
+  if (!existsSync(indexPath)) {
+    throw new Error(
+      `ezskills: catalog index is missing at ${indexPath}\n` +
+        `The index ships with the package and must not be regenerated at runtime.\n` +
+        `If you got this from a published tarball, please report a bug.\n` +
+        `If you are hacking on ezskills, run: pnpm build:index`,
+    );
   }
-  const indexer = new SkillIndexer({
-    skillsDir: paths.skillsDir,
-    indexPath: paths.indexPath,
-    fs: createFsPromisesAdapter(),
-  });
-  await indexer.run();
 }

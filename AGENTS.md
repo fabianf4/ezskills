@@ -16,7 +16,8 @@ pnpm es el package manager por defecto; npm funciona como drop-in replacement. T
 | Acción | pnpm | npm |
 |---|---|---|
 | Dev (sin compilar) | `pnpm dev` | `npm run dev` |
-| Build (tsc → dist/, +x) | `pnpm build` | `npm run build` |
+| Regenerar `catalog/index.json` (sólo dev) | `pnpm build:index` | `npm run build:index` |
+| Build (esbuild bundle → `dist/index.js`, +x) | `pnpm build` | `npm run build` |
 | Start (requiere build) | `pnpm start` | `npm run start` |
 | Test (suite completa) | `pnpm test` | `npm run test` |
 | Test watch | `pnpm test:watch` | `npm run test:watch` |
@@ -38,9 +39,9 @@ No hay linter/formatter configurado. No ejecutar `lint` (con cualquier package m
   - `views/` — componentes Ink (sin lógica de negocio).
   - `services/providers/` — `OpenCodeProvider`, `OpenClawProvider` extienden `BaseFsProvider`.
   - `services/installer/` — orquesta install/uninstall multi-skill.
-  - `services/indexer/` — escanea `catalog/` y genera `<catalog>/index.json`.
+  - `services/indexer/` — **dev tool only**. Escanea `catalog/` y (re)genera `<catalog>/index.json`. NO se importa desde el runtime; sólo desde `scripts/build-index.ts` y los tests. Garantizado por `src/tests/runtime-immutability.test.ts`.
   - `services/search/` — búsqueda pura por tokens en name/description/technologies.
-  - `repositories/` — `SkillRepository` (lee `index.json` cacheado), `InstalledSkillsRepository`.
+  - `repositories/` — `SkillRepository` (sólo lee `index.json`; nunca escribe), `InstalledSkillsRepository`.
 
 ## Convenciones
 
@@ -49,7 +50,7 @@ No hay linter/formatter configurado. No ejecutar `lint` (con cualquier package m
 - **Sin comentarios** salvo JSDoc en interfaces públicas.
 - **Tests** (Vitest): mocks de fs con `memfs` vía `FsAdapter`; no se hace mock de `node:fs` directo.
 - **Cobertura**: excluidos por diseño `src/index.ts`, `src/app.tsx`, `src/types/**`, `src/views/**`, `src/tests/**`, y `*.{test,spec}.ts(x)` (la cobertura de Ink con `useInput` no es fiable). El umbral 90% aplica al resto.
-- **No commitear** en git: `node_modules/`, `dist/`, `coverage/`, `.ezskills/`. `dist/` se publica al paquete npm vía `files` en `package.json`, pero no se versiona.
+- **No commitear** en git: `node_modules/`, `dist/`, `coverage/`, `.ezskills/`. `dist/` se publica al paquete npm vía `files` en `package.json`, pero no se versiona. **`catalog/index.json` SÍ se commitea** (es input del runtime, lo regenera el dev con `pnpm build:index`).
 - **TypeScript estricto**: `noUncheckedIndexedAccess`, `noUnusedLocals/Parameters`, `noImplicitReturns` activos. Evitar `any` salvo en el `FsAdapter` shim.
 - **`engine-strict=true`** en `.npmrc` — usar Node 20+.
 
@@ -76,7 +77,7 @@ description: React UI library best practices
 
 Opcional `metadata.json` con `technology` y/o `category` (alimentan la búsqueda).
 
-Al arrancar, si `<catalog>/index.json` no existe, se regenera automáticamente desde `skills/`. Para regenerar: borrar ese `index.json` y relanzar la TUI, o invocar `SkillIndexer.run()` directamente. `<catalog>` es el `EZSKILLS_SKILLS_DIR` si está set, o el catálogo bundled (al lado de `dist/`).
+Al arrancar, la app **lee** `<catalog>/index.json` y **nunca** lo crea, modifica ni borra. Si el archivo falta, `buildDependencies` falla con un error que apunta a `pnpm build:index`. Para regenerar (sólo el dev, nunca el usuario final): `pnpm build:index` (corre `scripts/build-index.ts` → `SkillIndexer.run()`). `<catalog>` es el `EZSKILLS_SKILLS_DIR` si está set, o el catálogo bundled junto a `dist/`.
 
 ### Origen del catálogo
 
@@ -88,7 +89,7 @@ mantenerlas. `ezskills` es una capa delgada de instalación sobre esos
 
 ## Variables de entorno
 
-`EZSKILLS_SKILLS_DIR` (cascada: env si está set → `catalog/` empaquetado dentro del paquete, calculado vía `getBundledSkillsDir()` desde `import.meta.url`), `EZSKILLS_OPENCODE_GLOBAL` (`~/.config/opencode/skills`), `EZSKILLS_OPENCODE_LOCAL` (`<cwd>/.opencode/skills`), `EZSKILLS_OPENCLAW_GLOBAL` (`~/.openclaw/skills`), `EZSKILLS_OPENCLAW_LOCAL` (`<cwd>/skills`). El cache de índice se escribe dentro del catálogo (`<catalog>/index.json`); no se expone env var para override.
+`EZSKILLS_SKILLS_DIR` (cascada: env si está set → `catalog/` empaquetado dentro del paquete, calculado vía `getBundledSkillsDir()` desde `import.meta.url`), `EZSKILLS_OPENCODE_GLOBAL` (`~/.config/opencode/skills`), `EZSKILLS_OPENCODE_LOCAL` (`<cwd>/.opencode/skills`), `EZSKILLS_OPENCLAW_GLOBAL` (`~/.openclaw/skills`), `EZSKILLS_OPENCLAW_LOCAL` (`<cwd>/skills`). El `index.json` se commitea en `catalog/` y se distribuye con el paquete; el runtime sólo lo lee.
 
 ## Contratos clave
 

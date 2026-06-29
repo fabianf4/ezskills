@@ -23,9 +23,33 @@ function getEntry(version: string): string {
 }
 
 describe('changelog and package version', () => {
-  it('package.json version is 0.2.0', () => {
+  it('package.json version is 0.3.0', () => {
     const pkg = JSON.parse(readFileSync(PACKAGE_JSON, 'utf-8')) as { version?: string };
-    expect(pkg.version).toBe('0.2.0');
+    expect(pkg.version).toBe('0.3.0');
+  });
+
+  it('changelog has a 0.3.0 entry dated 2026-06-28', () => {
+    const changelog = readFileSync(CHANGELOG, 'utf-8');
+    expect(changelog).toMatch(/^## 0\.3\.0 \(2026-06-28\)/m);
+  });
+
+  it('0.3.0 entry documents the self-contained bundle (esbuild)', () => {
+    const entry = getEntry('0.3.0');
+    expect(entry).toMatch(/esbuild/i);
+    expect(entry).toMatch(/self-contained/i);
+  });
+
+  it('0.3.0 entry documents that index.json is committed and never written at runtime', () => {
+    const entry = getEntry('0.3.0');
+    expect(entry).toContain('committed to the repo');
+    expect(entry).toContain('`pnpm build:index`');
+    expect(entry).toMatch(/never.*runtime|never created.*modified.*deleted/i);
+  });
+
+  it('0.3.0 entry documents the new build:index script', () => {
+    const entry = getEntry('0.3.0');
+    expect(entry).toContain('`pnpm build:index`');
+    expect(entry).toContain('scripts/build-index.ts');
   });
 
   it('changelog has a 0.2.0 entry dated 2026-06-28', () => {
