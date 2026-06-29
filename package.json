@@ -1,6 +1,6 @@
 {
   "name": "@fabianf4/ezskills",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "TUI to install and uninstall skills for OpenCode and OpenClaw",
   "type": "module",
   "bin": {
