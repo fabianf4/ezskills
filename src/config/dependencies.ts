@@ -1,8 +1,7 @@
 import { existsSync } from 'node:fs';
-import { mkdir, writeFile } from 'node:fs/promises';
-import { dirname } from 'node:path';
 
 import { resolvePaths, type AppPaths } from './paths.js';
+import { createFsPromisesAdapter } from './fs-promises-adapter.js';
 import { SkillIndexer } from '../services/indexer/skill-indexer.js';
 import { SkillRepository } from '../repositories/skill-repository.js';
 import { InstalledSkillsRepository } from '../repositories/installed-skills-repository.js';
@@ -27,11 +26,12 @@ export async function buildDependencies(cwd: string = process.cwd()): Promise<Ap
   const paths = resolvePaths(cwd);
   await ensureIndexFile(paths);
 
-  const skillRepo = new SkillRepository(paths.indexPath, fsPromisesAdapter());
+  const fs = createFsPromisesAdapter();
+  const skillRepo = new SkillRepository(paths.indexPath, fs);
   const searchService = new SearchService();
 
-  const opencode = new OpenCodeProvider(paths.opencode, fsPromisesAdapter());
-  const openclaw = new OpenClawProvider(paths.openclaw, fsPromisesAdapter());
+  const opencode = new OpenCodeProvider(paths.opencode, fs);
+  const openclaw = new OpenClawProvider(paths.openclaw, fs);
   const providers = new Map<string, SkillProvider>([
     [opencode.id, opencode],
     [openclaw.id, openclaw],
@@ -67,28 +67,7 @@ async function ensureIndexFile(paths: AppPaths): Promise<void> {
   const indexer = new SkillIndexer({
     skillsDir: paths.skillsDir,
     indexPath: paths.indexPath,
-    fs: fsPromisesAdapter(),
+    fs: createFsPromisesAdapter(),
   });
   await indexer.run();
 }
-
-function fsPromisesAdapter() {
-  return {
-    readdir: (p: string, opts: { withFileTypes: true }) =>
-      import('node:fs/promises').then((m) => m.readdir(p, opts)),
-    readFile: (p: string, enc: 'utf-8') =>
-      import('node:fs/promises').then((m) => m.readFile(p, enc)),
-    stat: (p: string) => import('node:fs/promises').then((m) => m.stat(p)),
-    mkdir: (p: string, opts: { recursive: boolean }) =>
-      import('node:fs/promises').then((m) => m.mkdir(p, opts)),
-    writeFile: (p: string, c: string) =>
-      import('node:fs/promises').then((m) => m.writeFile(p, c)),
-    cp: (s: string, d: string, opts: { recursive: boolean }) =>
-      import('node:fs/promises').then((m) => m.cp(s, d, opts)),
-    rm: (p: string, opts: { recursive: boolean; force: boolean }) =>
-      import('node:fs/promises').then((m) => m.rm(p, opts)),
-    existsSync,
-  };
-}
-
-export { mkdir, writeFile, dirname };
