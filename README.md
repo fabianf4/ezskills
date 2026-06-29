@@ -1,5 +1,8 @@
 # ezskills
 
+[![npm version](https://img.shields.io/npm/v/@fabianf4/ezskills.svg)](https://www.npmjs.com/package/@fabianf4/ezskills)
+[![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
+
 A TUI to install and uninstall skills for [OpenCode](https://opencode.ai) and [OpenClaw](https://openclaw.dev) without manually copying files around.
 
 ## Why
@@ -62,41 +65,60 @@ skill, every scope, every provider. `ezskills` is a terminal interface that:
 
 ## Installation
 
-Requires Node.js 20+ and pnpm 11+ (pinned via `packageManager`; corepack
-will install it automatically the first time you run `pnpm`).
+Requires Node.js 20+.
 
-### From the repository (recommended while we don't ship to npm yet)
+### From npm (recommended)
+
+```bash
+npm install -g @fabianf4/ezskills
+ezskills --version
+```
+
+The bundled catalog is included in the package, so `ezskills` works out
+of the box on any Linux with Node 20+ — no extra setup. To point at a
+different catalog, set `EZSKILLS_SKILLS_DIR` (see
+[Environment variables](#environment-variables)).
+
+#### With pnpm
+
+```bash
+pnpm add -g @fabianf4/ezskills
+```
+
+#### One-off use without installing
+
+```bash
+npx -y @fabianf4/ezskills
+```
+
+### From the repository (development)
+
+Use this path if you want to hack on the binary or test a local change:
 
 ```bash
 git clone https://github.com/fabianf4/ezskills.git
 cd ezskills
 corepack enable            # only the first time, if pnpm isn't installed
 pnpm install               # dev deps
-pnpm build:index           # regenerates catalog/index.json (one-time)
 pnpm build                 # bundles dist/index.js
 pnpm add -g .              # installs the ezskills bin globally
 ezskills --version
 ```
 
-#### Alternatives
+The `catalog/index.json` file is committed to the repo, so a fresh clone
+does not need `pnpm build:index`. Run it only after you add or change
+skills under `catalog/`.
 
-If you can't or don't want to use pnpm, npm works for the global install
-(skip `pnpm install` and the dev scripts, or use the npm install path):
+#### npm alternative
+
+If you can't or don't want to use pnpm, npm works for the dev build:
 
 ```bash
 git clone https://github.com/fabianf4/ezskills.git
 cd ezskills
 npm install
-npm run build:index
 npm run build
 npm install -g .
-ezskills --version
-```
-
-### From npm (once published)
-
-```bash
-npm install -g @fabianf4/ezskills
 ezskills --version
 ```
 
