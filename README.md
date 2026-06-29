@@ -2,125 +2,66 @@
 
 [![npm version](https://img.shields.io/npm/v/@fabianf4/ezskills.svg)](https://www.npmjs.com/package/@fabianf4/ezskills)
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
+[![Node >= 20](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org)
+[![pnpm >= 11](https://img.shields.io/badge/pnpm-%3E%3D11-orange.svg)](https://pnpm.io)
 
-A TUI to install and uninstall skills for [OpenCode](https://opencode.ai) and [OpenClaw](https://openclaw.dev) without manually copying files around.
+A TUI to install and uninstall skills for [OpenCode](https://opencode.ai) and [OpenClaw](https://openclaw.dev).
+
+## What is ezskills?
+
+`ezskills` is a terminal interface that lists the skills available in a catalog, lets you pick the ones you want, and copies them into the right directory for the providers you have installed on your system. It also works in reverse: see what's installed, pick what to remove, get a clear report.
+
+The catalog ships inside the package, so it works out of the box on any Linux machine with Node 20+. The published binary is a single self-contained ESM bundle — `node_modules` adjacent to the package are not required.
 
 ## Why
 
-Both OpenCode and OpenClaw load skills from a directory on disk. Managing those
-directories by hand is tedious: clone a repo, find the right files, drop them in
-`~/.config/opencode/skills/` or `<project>/.opencode/skills/`, repeat for every
-skill, every scope, every provider. `ezskills` is a terminal interface that:
-
-- Scans a catalog of skills (shipped with the package, or your own).
-- Lets you pick which ones to install and which providers to target.
-- Installs globally (`~/.config/...`) or locally (`<project>/.opencode/...`).
-- Does the same in reverse for uninstall, with a clear report of what changed.
+OpenCode and OpenClaw load skills from a directory on disk. Managing those directories by hand is tedious: clone a repo, find the right files, drop them in `~/.config/opencode/skills/`, `<project>/.opencode/skills/`, `~/.openclaw/skills/`, or `<project>/skills/`, and repeat for every skill, every scope, every provider. `ezskills` turns that into a couple of keystrokes.
 
 ## Features
 
-- Multi-provider: install or uninstall across OpenCode and OpenClaw in one go.
-- Multi-select with vim keybindings (`j`/`k`, `g`/`G`, `Space`, `Enter`).
-- Search by name, description, and technology.
-- Global vs. local scope, switchable with `Tab`.
-- Bundled catalog included by default — works out of the box, no setup.
-- Already-installed skills are dimmed and marked `✓ installed`.
-- One tool, one binary: `ezskills`.
-- **Self-contained**: the published binary bundles React, Ink, Chalk,
-  Memfs, and Yaml with esbuild. `node_modules` adjacent to the package
-  are not required — it runs on any Linux with Node 20+.
-
-## Demo
-
-```
-┌─ ezskills ──────────────────────────────────────────┐
-│ > Install Skills                                    │
-│   Uninstall Skills                                  │
-│   Quit                                              │
-└─────────────────────────────────────────────────────┘
-  j/k move  enter select  q quit
-
-┌─ Select tools ──────────────────────┐
-│ > [x] OpenCode                      │
-│   [ ] OpenClaw                      │
-└─────────────────────────────────────┘
-  space toggle  enter confirm  esc back
-
-┌─ Install skills ────────────────────────────────────┐
-│   react                                              │
-│     React UI library best practices                  │
-│   python                                             │
-│     Pythonic patterns and idioms                     │
-│ > typescript                                         │
-│     TypeScript language best practices  ✓ installed  │
-└─────────────────────────────────────────────────────┘
-  j/k move  s search  tab scope  space toggle  enter confirm  esc back
-```
+- **Multi-provider**: install or uninstall across OpenCode and OpenClaw in one go.
+- **Multi-select** with vim keybindings (`j`/`k`, `g`/`G`, `Space`, `Enter`).
+- **Search** by name, description, and technology.
+- **Global vs. local scope**, switchable with `Tab`.
+- **Bundled catalog** included by default — works out of the box, no setup.
+- **Already-installed skills** are dimmed and marked `✓ installed`; they cannot be re-selected.
+- **Provider picker** auto-detects which providers are installed and pre-selects when there's exactly one.
+- **Self-contained binary**: React, Ink, Chalk, Memfs, and Yaml are inlined with esbuild. Runs on any Linux with Node 20+.
 
 ## Requirements
 
 - Node.js 20 or newer.
-- One or more of the supported providers installed on the system
-  (the picker only shows providers it can detect).
+- At least one of the supported providers installed on the system (the picker only shows providers it can detect).
 
-## Installation
+## Getting started
 
-Requires Node.js 20+.
+### Try it without installing
 
-### From npm (recommended)
+The fastest way to give it a spin:
+
+```bash
+npx -y @fabianf4/ezskills
+```
+
+`npx` downloads a temporary copy, runs the TUI, and cleans up after you exit. Great for a first look.
+
+### Install globally with pnpm (recommended)
+
+```bash
+pnpm add -g @fabianf4/ezskills
+ezskills --version
+```
+
+`pnpm` is the package manager this project is developed against. Use it for global installs when you can.
+
+### Install globally with npm
 
 ```bash
 npm install -g @fabianf4/ezskills
 ezskills --version
 ```
 
-The bundled catalog is included in the package, so `ezskills` works out
-of the box on any Linux with Node 20+ — no extra setup. To point at a
-different catalog, set `EZSKILLS_SKILLS_DIR` (see
-[Environment variables](#environment-variables)).
-
-#### With pnpm
-
-```bash
-pnpm add -g @fabianf4/ezskills
-```
-
-#### One-off use without installing
-
-```bash
-npx -y @fabianf4/ezskills
-```
-
-### From the repository (development)
-
-Use this path if you want to hack on the binary or test a local change:
-
-```bash
-git clone https://github.com/fabianf4/ezskills.git
-cd ezskills
-corepack enable            # only the first time, if pnpm isn't installed
-pnpm install               # dev deps
-pnpm build                 # bundles dist/index.js
-pnpm add -g .              # installs the ezskills bin globally
-ezskills --version
-```
-
-The `catalog/index.json` file is committed to the repo, so a fresh clone
-does not need `pnpm build:index`. Run it only after you add or change
-skills under `catalog/`.
-
-#### npm alternative
-
-If you can't or don't want to use pnpm, npm works for the dev build:
-
-```bash
-git clone https://github.com/fabianf4/ezskills.git
-cd ezskills
-npm install
-npm run build
-npm install -g .
-ezskills --version
-```
+`npm` works as a drop-in replacement for `pnpm add -g`. Pick whichever you have.
 
 ## Usage
 
@@ -132,96 +73,50 @@ ezskills --help         # print help and exit
 
 Without flags, the TUI walks you through:
 
-1. Pick an action from the main menu (Install or Uninstall).
-2. Select the providers you want to act on. The picker only shows providers
-   that are actually installed on your system, and pre-selects the only one
-   if there is exactly one. With two or more, you mark them with `Space`.
-3. Pick the skills (or the installed skills, for Uninstall).
-4. Confirm. A summary prints at the end with `installed`, `skipped`, and
-   `failed` per provider.
+1. **Main menu** — pick `Install Skills` or `Uninstall Skills`.
+2. **Provider picker** — multi-select the tools you want to act on. The picker only shows providers that are actually installed on your system. If there is exactly one, it comes pre-selected. With zero or two or more, it starts empty; if you confirm with nothing marked, the picker stays put and shows `Select at least one tool`.
+3. **Skill list** — for install: the full catalog, with already-installed skills dimmed and suffixed with `✓ installed`. For uninstall: only the skills currently installed for the selected providers. Search with `s`, toggle scope with `Tab`, mark with `Space`.
+4. **Confirm** — a summary prints at the end with `installed`/`skipped`/`failed` (install) or `uninstalled`/`failed` (uninstall), per provider.
 
 ### Keybindings
 
-| Key                    | Action                            |
-| ---------------------- | --------------------------------- |
-| `↑` / `↓` or `j` / `k` | Move the cursor                   |
-| `g` / `G`              | Jump to top / bottom of the list  |
-| `Space`                | Toggle selection                  |
-| `Enter`                | Confirm                           |
-| `Esc`                  | Go back / cancel                  |
-| `q`                    | Quit (from the main menu)         |
-| `s`                    | Focus the search input            |
-| `Tab`                  | Switch scope (global / local)     |
+| Key                    | Action                              |
+| ---------------------- | ----------------------------------- |
+| `↑` / `↓` or `j` / `k` | Move the cursor                     |
+| `g` / `G`              | Jump to top / bottom of the list    |
+| `Space`                | Toggle selection                    |
+| `Enter`                | Confirm                             |
+| `Esc`                  | Go back / cancel                    |
+| `q`                    | Quit (from the main menu)           |
+| `s`                    | Focus the search input              |
+| `Tab`                  | Switch scope (global / local)       |
 
-## Skill format
+## Uninstalling
 
-A skill is a folder with a `SKILL.md` file. The frontmatter is what gets
-indexed; the body is what gets installed.
+To remove the `ezskills` binary:
 
-```yaml
----
-name: react
-description: React UI library best practices
----
-# React skill content goes here
+```bash
+pnpm remove -g @fabianf4/ezskills
+# or
+npm uninstall -g @fabianf4/ezskills
 ```
 
-Optionally a `metadata.json` next to `SKILL.md` adds tags for the search:
+To remove skills from your providers, the cleanest path is `Uninstall Skills` in the TUI itself. If you prefer, you can also delete skill folders directly from the target directory of each provider (the picker shows the tools, but paths are not exposed in the UI on purpose).
 
-```json
-{
-  "technology": "React",
-  "category": "Frontend"
-}
-```
+## Catalog origin
 
-The default catalog ships inside the package at `catalog/` (sibling of
-`package.json` and `dist/`). To use your own, set `EZSKILLS_SKILLS_DIR` to
-point at it (see below). The `catalog/index.json` file is committed to
-the repo and shipped with the package; it is never regenerated at runtime.
-
-### Catalog origin
-
-Skills in the bundled catalog are sourced from
-[midudev/autoskills](https://github.com/midudev/autoskills/tree/main). Thanks
-to midudev and the contributors of that project for curating and maintaining
-them. `ezskills` is a thin installer over those `SKILL.md` files.
-
-## Environment variables
-
-| Variable                  | Default                                      | Description            |
-| ------------------------- | -------------------------------------------- | ---------------------- |
-| `EZSKILLS_SKILLS_DIR`     | the bundled catalog                          | Source of skills       |
-| `EZSKILLS_OPENCODE_GLOBAL`| `~/.config/opencode/skills`                  | OpenCode global target |
-| `EZSKILLS_OPENCODE_LOCAL` | `<cwd>/.opencode/skills`                     | OpenCode local target  |
-| `EZSKILLS_OPENCLAW_GLOBAL`| `~/.openclaw/skills`                         | OpenClaw global target |
-| `EZSKILLS_OPENCLAW_LOCAL` | `<cwd>/skills`                               | OpenClaw local target  |
-
-`EZSKILLS_SKILLS_DIR` is resolved with this cascade:
-
-1. The environment variable, if set.
-2. The catalog bundled inside the package, so `ezskills` works the moment
-   you install it without any local setup.
-
-The `<catalog>/index.json` file is shipped with the package and is **read-only
-at runtime**. It is regenerated by the developer with `pnpm build:index`
-when the catalog changes; the binary itself never creates, modifies, or
-deletes it. If it is missing from the installed package, `ezskills` exits
-with an actionable error.
-
-## Detection
-
-A provider is considered "installed" if its config directory exists:
-
-- OpenCode: `~/.config/opencode/`
-- OpenClaw: `~/.openclaw/`
-
-The picker only lists providers that pass this check.
+The skills in the bundled catalog are sourced from
+[`midudev/autoskills`](https://github.com/midudev/autoskills/tree/main).
+Thanks to midudev and the contributors of that project for curating and
+maintaining them. `ezskills` is a thin installer over those `SKILL.md`
+files.
 
 ## Contributing
 
-Development, architecture, adding new providers, and the test suite live in
-[AGENTS.md](./AGENTS.md).
+Want to hack on the binary, add a provider, or curate new skills? See
+[CONTRIBUTING.md](./CONTRIBUTING.md) for the architecture, conventions,
+and the recipe to add new providers and skills. AI-agent specific notes
+live in [AGENTS.md](./AGENTS.md).
 
 ## License
 
