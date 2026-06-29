@@ -87,12 +87,12 @@ export const App: React.FC<AppProps> = ({ deps }) => {
 
   useEffect(() => {
     if (screen === 'uninstall' && uninstallController) {
-      uninstallController.loadInstalled().then(setInstalled);
+      uninstallController.loadInstalled(scope).then(setInstalled);
       if (available.length === 0) {
         deps.skillRepo.getAll().then(setAvailable);
       }
     }
-  }, [screen, uninstallController, deps.skillRepo, available.length]);
+  }, [screen, uninstallController, deps.skillRepo, available.length, scope]);
 
   if (exitRequested) {
     return React.createElement(Text, { dimColor: true }, 'Goodbye!');

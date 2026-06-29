@@ -30,4 +30,27 @@ describe('output', () => {
     expect(message).toContain('EZSKILLS_OPENCODE_GLOBAL');
     expect(message).toContain('EZSKILLS_OPENCLAW_GLOBAL');
   });
+
+  it('printHelp does not list the removed EZSKILLS_INDEX_PATH env var', () => {
+    printHelp();
+    const message = logSpy.mock.calls.map((c) => c[0]).join('\n') as string;
+    expect(message).not.toContain('EZSKILLS_INDEX_PATH');
+  });
+
+  it('printHelp does not advertise the removed <cwd>/catalog fallback as default', () => {
+    printHelp();
+    const message = logSpy.mock.calls.map((c) => c[0]).join('\n') as string;
+    const skillsDirLine = message
+      .split('\n')
+      .find((l) => l.includes('EZSKILLS_SKILLS_DIR'));
+    expect(skillsDirLine).toBeDefined();
+    expect(skillsDirLine).not.toMatch(/<cwd>\/catalog/);
+    expect(skillsDirLine).not.toMatch(/falls back/i);
+  });
+
+  it('printHelp documents the bundled catalog as the default source', () => {
+    printHelp();
+    const message = logSpy.mock.calls.map((c) => c[0]).join('\n') as string;
+    expect(message).toMatch(/bundled catalog/i);
+  });
 });

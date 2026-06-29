@@ -8,8 +8,6 @@ export interface UninstallControllerHandlers {
 }
 
 export class UninstallController {
-  private scope: Scope = 'local';
-
   constructor(
     private readonly installedRepo: InstalledSkillsRepository,
     private readonly installer: InstallerService,
@@ -17,18 +15,10 @@ export class UninstallController {
     private readonly handlers: UninstallControllerHandlers,
   ) {}
 
-  async loadInstalled(): Promise<InstalledSkill[]> {
-    const all = await this.installedRepo.listByScope(this.scope);
+  async loadInstalled(scope: Scope): Promise<InstalledSkill[]> {
+    const all = await this.installedRepo.listByScope(scope);
     if (!this.providerIds) return all;
     return all.filter((s) => this.providerIds!.has(s.providerId));
-  }
-
-  setScope(scope: Scope): void {
-    this.scope = scope;
-  }
-
-  getScope(): Scope {
-    return this.scope;
   }
 
   async confirm(skills: InstalledSkill[]): Promise<void> {

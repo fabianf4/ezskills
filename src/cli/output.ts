@@ -30,9 +30,8 @@ Run without options to launch the interactive TUI for installing and
 uninstalling skills for OpenCode and OpenClaw.
 
 Environment variables:
-  EZSKILLS_SKILLS_DIR        Skills catalog directory (default: <cwd>/catalog,
-                             falls back to the bundled catalog shipped with the package)
-  EZSKILLS_INDEX_PATH        Index file path (default: <cwd>/.ezskills/index.json)
+  EZSKILLS_SKILLS_DIR        Override the skills catalog directory
+                             (default: the bundled catalog shipped with the package)
   EZSKILLS_OPENCODE_GLOBAL   OpenCode global skills dir
   EZSKILLS_OPENCODE_LOCAL    OpenCode local skills dir
   EZSKILLS_OPENCLAW_GLOBAL   OpenClaw global skills dir
