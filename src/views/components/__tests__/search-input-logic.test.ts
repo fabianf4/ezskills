@@ -9,7 +9,7 @@ const right: KeyInfo = { rightArrow: true };
 const ctrl: KeyInfo = { ctrl: true };
 const del: KeyInfo = { delete: true };
 
-describe('applyKeyToText - backspace (borrar último carácter)', () => {
+describe('applyKeyToText - backspace (delete last character)', () => {
   it('removes the char before cursor when cursor is at end', () => {
     expect(applyKeyToText({ value: 'hello', cursor: 5 }, '', bs))
       .toEqual<TextState>({ value: 'hell', cursor: 4 });
