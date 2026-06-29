@@ -23,9 +23,9 @@ function getEntry(version: string): string {
 }
 
 describe('changelog and package version', () => {
-  it('package.json version is 0.3.0', () => {
+  it('package.json version is 0.3.1', () => {
     const pkg = JSON.parse(readFileSync(PACKAGE_JSON, 'utf-8')) as { version?: string };
-    expect(pkg.version).toBe('0.3.0');
+    expect(pkg.version).toBe('0.3.1');
   });
 
   it('changelog has a 0.3.0 entry dated 2026-06-28', () => {
