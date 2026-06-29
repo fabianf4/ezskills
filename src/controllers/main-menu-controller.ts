@@ -1,4 +1,3 @@
-import { MenuState } from '../models/menu-state.js';
 import type { Scope } from '../types/index.js';
 
 export interface MainMenuOption {
@@ -19,10 +18,7 @@ export interface MainMenuHandlers {
 }
 
 export class MainMenuController {
-  constructor(
-    private readonly menu: MenuState,
-    private readonly handlers: MainMenuHandlers,
-  ) {}
+  constructor(private readonly handlers: MainMenuHandlers) {}
 
   getOptions(): ReadonlyArray<MainMenuOption> {
     return MAIN_MENU_OPTIONS;
@@ -33,18 +29,15 @@ export class MainMenuController {
   }
 
   back(): void {
-    this.menu.reset();
     this.handlers.onExit();
   }
 
   handleSelect(optionId: string, scope: Scope): void {
     switch (optionId) {
       case 'install':
-        this.menu.go('install');
         this.handlers.onInstall(scope);
         return;
       case 'uninstall':
-        this.menu.go('uninstall');
         this.handlers.onUninstall(scope);
         return;
       default:

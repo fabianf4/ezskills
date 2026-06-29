@@ -34,7 +34,7 @@ No hay linter/formatter configurado. No ejecutar `pnpm lint`.
   - `views/` — componentes Ink (sin lógica de negocio).
   - `services/providers/` — `OpenCodeProvider`, `OpenClawProvider` extienden `BaseFsProvider`.
   - `services/installer/` — orquesta install/uninstall multi-skill.
-  - `services/indexer/` — escanea `catalog/` y genera `.ezskills/index.json`.
+  - `services/indexer/` — escanea `catalog/` y genera `<catalog>/index.json`.
   - `services/search/` — búsqueda pura por tokens en name/description/technologies.
   - `repositories/` — `SkillRepository` (lee `index.json` cacheado), `InstalledSkillsRepository`.
 
@@ -72,11 +72,19 @@ description: React UI library best practices
 
 Opcional `metadata.json` con `technology` y/o `category` (alimentan la búsqueda).
 
-Al arrancar, si `.ezskills/index.json` no existe, se regenera automáticamente desde `skills/`. Para regenerar: borrar `.ezskills/index.json` y relanzar la TUI, o invocar `SkillIndexer.run()` directamente.
+Al arrancar, si `<catalog>/index.json` no existe, se regenera automáticamente desde `skills/`. Para regenerar: borrar ese `index.json` y relanzar la TUI, o invocar `SkillIndexer.run()` directamente. `<catalog>` es el `EZSKILLS_SKILLS_DIR` si está set, o el catálogo bundled (al lado de `dist/`).
+
+### Origen del catálogo
+
+Las skills del catálogo bundled provienen de
+[midudev/autoskills](https://github.com/midudev/autoskills/tree/main).
+Gracias a midudev y a quienes contribuyen a ese proyecto por curarlas y
+mantenerlas. `ezskills` es una capa delgada de instalación sobre esos
+`SKILL.md`.
 
 ## Variables de entorno
 
-`EZSKILLS_SKILLS_DIR` (cascada: env si está set → `<cwd>/catalog` si existe → `catalog/` empaquetado dentro del paquete, calculado vía `getBundledSkillsDir()` desde `import.meta.url`), `EZSKILLS_INDEX_PATH` (`<cwd>/.ezskills/index.json`), `EZSKILLS_OPENCODE_GLOBAL` (`~/.config/opencode/skills`), `EZSKILLS_OPENCODE_LOCAL` (`<cwd>/.opencode/skills`), `EZSKILLS_OPENCLAW_GLOBAL` (`~/.openclaw/skills`), `EZSKILLS_OPENCLAW_LOCAL` (`<cwd>/skills`).
+`EZSKILLS_SKILLS_DIR` (cascada: env si está set → `catalog/` empaquetado dentro del paquete, calculado vía `getBundledSkillsDir()` desde `import.meta.url`), `EZSKILLS_OPENCODE_GLOBAL` (`~/.config/opencode/skills`), `EZSKILLS_OPENCODE_LOCAL` (`<cwd>/.opencode/skills`), `EZSKILLS_OPENCLAW_GLOBAL` (`~/.openclaw/skills`), `EZSKILLS_OPENCLAW_LOCAL` (`<cwd>/skills`). El cache de índice se escribe dentro del catálogo (`<catalog>/index.json`); no se expone env var para override.
 
 ## Contratos clave
 

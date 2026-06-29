@@ -69,45 +69,6 @@ describe('InstallController', () => {
     expect(names.has('b')).toBe(true);
   });
 
-  it('setScope and getScope', () => {
-    const c = new InstallController(
-      {} as SkillRepository,
-      {} as InstalledSkillsRepository,
-      {} as InstallerService,
-      new Set(['opencode']),
-      { onBack: vi.fn(), onResult: vi.fn(), onError: vi.fn() },
-    );
-    c.setScope('local');
-    expect(c.getScope()).toBe('local');
-  });
-
-  it('toggle and isSelected', () => {
-    const c = new InstallController(
-      {} as SkillRepository,
-      {} as InstalledSkillsRepository,
-      {} as InstallerService,
-      new Set(['opencode']),
-      { onBack: vi.fn(), onResult: vi.fn(), onError: vi.fn() },
-    );
-    c.toggle('zod');
-    expect(c.isSelected('zod')).toBe(true);
-    c.toggle('zod');
-    expect(c.isSelected('zod')).toBe(false);
-  });
-
-  it('filter uses internal state query', () => {
-    const c = new InstallController(
-      {} as SkillRepository,
-      {} as InstalledSkillsRepository,
-      {} as InstallerService,
-      new Set(['opencode']),
-      { onBack: vi.fn(), onResult: vi.fn(), onError: vi.fn() },
-    );
-    c.setQuery('zod');
-    const filtered = c.filter([SKILL, { name: 'react', description: 'r', technologies: [], path: '/r' }]);
-    expect(filtered.map((s) => s.name)).toEqual(['zod']);
-  });
-
   it('confirm with empty skills calls onError', async () => {
     const onError = vi.fn();
     const c = new InstallController(
@@ -117,7 +78,7 @@ describe('InstallController', () => {
       new Set(['opencode']),
       { onBack: vi.fn(), onResult: vi.fn(), onError },
     );
-    await c.confirm([]);
+    await c.confirm([], 'local');
     expect(onError).toHaveBeenCalledWith('No skills selected');
   });
 
@@ -130,11 +91,11 @@ describe('InstallController', () => {
       new Set(),
       { onBack: vi.fn(), onResult: vi.fn(), onError },
     );
-    await c.confirm([SKILL]);
+    await c.confirm([SKILL], 'local');
     expect(onError).toHaveBeenCalledWith('No provider selected');
   });
 
-  it('confirm with a single provider calls installer once', async () => {
+  it('confirm with a single provider calls installer once with the passed scope', async () => {
     vol.fromJSON({ '/idx.json': '[]' }, '/');
     const repo = new SkillRepository('/idx.json', fs());
     const provider = buildProvider('opencode');
@@ -147,8 +108,8 @@ describe('InstallController', () => {
       onResult,
       onError: vi.fn(),
     });
-    await c.confirm([SKILL]);
-    expect(installSpy).toHaveBeenCalledWith(SKILL, 'local');
+    await c.confirm([SKILL], 'global');
+    expect(installSpy).toHaveBeenCalledWith(SKILL, 'global');
     expect(onResult).toHaveBeenCalled();
   });
 
@@ -172,7 +133,7 @@ describe('InstallController', () => {
       new Set(['opencode', 'openclaw']),
       { onBack: vi.fn(), onResult, onError: vi.fn() },
     );
-    await c.confirm([SKILL]);
+    await c.confirm([SKILL], 'local');
     expect(opencodeSpy).toHaveBeenCalledWith(SKILL, 'local');
     expect(openclawSpy).toHaveBeenCalledWith(SKILL, 'local');
     const result = onResult.mock.calls[0]?.[0] as { installed: string[]; failed: unknown[] };
@@ -199,7 +160,7 @@ describe('InstallController', () => {
       new Set(['opencode']),
       { onBack: vi.fn(), onResult, onError: vi.fn() },
     );
-    await c.confirm([SKILL]);
+    await c.confirm([SKILL], 'local');
     expect(onResult).toHaveBeenCalled();
     const result = onResult.mock.calls[0]?.[0] as { failed: Array<{ name: string; error: string }> };
     expect(result.failed[0]?.error).toBe('boom');
@@ -218,7 +179,7 @@ describe('InstallController', () => {
       new Set(['opencode']),
       { onBack: vi.fn(), onResult: vi.fn(), onError },
     );
-    await c.confirm([SKILL]);
+    await c.confirm([SKILL], 'local');
     expect(spy).toHaveBeenCalled();
     expect(onError).toHaveBeenCalledWith('total-fail');
   });
@@ -234,5 +195,21 @@ describe('InstallController', () => {
     );
     c.back();
     expect(onBack).toHaveBeenCalled();
+  });
+
+  it('does not expose scope state (the view owns it and passes it as a confirm arg)', () => {
+    const c = new InstallController(
+      {} as SkillRepository,
+      {} as InstalledSkillsRepository,
+      {} as InstallerService,
+      new Set(['opencode']),
+      { onBack: vi.fn(), onResult: vi.fn(), onError: vi.fn() },
+    );
+    expect((c as unknown as { setScope?: unknown }).setScope).toBeUndefined();
+    expect((c as unknown as { getScope?: unknown }).getScope).toBeUndefined();
+    expect((c as unknown as { setQuery?: unknown }).setQuery).toBeUndefined();
+    expect((c as unknown as { toggle?: unknown }).toggle).toBeUndefined();
+    expect((c as unknown as { isSelected?: unknown }).isSelected).toBeUndefined();
+    expect((c as unknown as { filter?: unknown }).filter).toBeUndefined();
   });
 });

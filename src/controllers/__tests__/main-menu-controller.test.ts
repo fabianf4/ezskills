@@ -1,6 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
 import { MainMenuController, MAIN_MENU_OPTIONS } from '../main-menu-controller.js';
-import { MenuState } from '../../models/menu-state.js';
 import type { Scope } from '../../types/index.js';
 
 const buildHandlers = () => ({
@@ -11,63 +10,54 @@ const buildHandlers = () => ({
 
 describe('MainMenuController', () => {
   it('getOptions() returns the top-level options', () => {
-    const c = new MainMenuController(new MenuState(), buildHandlers());
+    const c = new MainMenuController(buildHandlers());
     expect(c.getOptions().map((o) => o.id)).toEqual(MAIN_MENU_OPTIONS.map((o) => o.id));
   });
 
   it('canGoBack() is false (main is the entry point)', () => {
-    const c = new MainMenuController(new MenuState(), buildHandlers());
+    const c = new MainMenuController(buildHandlers());
     expect(c.canGoBack()).toBe(false);
   });
 
-  it('handleSelect("install", "global") navigates to install and calls onInstall with global', () => {
-    const menu = new MenuState();
+  it('handleSelect("install", "global") calls onInstall with global', () => {
     const h = buildHandlers();
-    const c = new MainMenuController(menu, h);
+    const c = new MainMenuController(h);
 
     c.handleSelect('install', 'global');
 
-    expect(menu.getCurrent()).toBe('install');
     expect(h.onInstall).toHaveBeenCalledWith('global');
   });
 
-  it('handleSelect("install", "local") navigates to install and calls onInstall with local', () => {
-    const menu = new MenuState();
+  it('handleSelect("install", "local") calls onInstall with local', () => {
     const h = buildHandlers();
-    const c = new MainMenuController(menu, h);
+    const c = new MainMenuController(h);
 
     c.handleSelect('install', 'local');
 
-    expect(menu.getCurrent()).toBe('install');
     expect(h.onInstall).toHaveBeenCalledWith('local');
   });
 
-  it('handleSelect("uninstall", "global") navigates to uninstall and calls onUninstall with global', () => {
-    const menu = new MenuState();
+  it('handleSelect("uninstall", "global") calls onUninstall with global', () => {
     const h = buildHandlers();
-    const c = new MainMenuController(menu, h);
+    const c = new MainMenuController(h);
 
     c.handleSelect('uninstall', 'global');
 
-    expect(menu.getCurrent()).toBe('uninstall');
     expect(h.onUninstall).toHaveBeenCalledWith('global');
   });
 
-  it('handleSelect("uninstall", "local") navigates to uninstall and calls onUninstall with local', () => {
-    const menu = new MenuState();
+  it('handleSelect("uninstall", "local") calls onUninstall with local', () => {
     const h = buildHandlers();
-    const c = new MainMenuController(menu, h);
+    const c = new MainMenuController(h);
 
     c.handleSelect('uninstall', 'local');
 
-    expect(menu.getCurrent()).toBe('uninstall');
     expect(h.onUninstall).toHaveBeenCalledWith('local');
   });
 
   it('handleSelect does not call the other handlers', () => {
-    const menu = new MenuState();
     const h = buildHandlers();
-    const c = new MainMenuController(menu, h);
+    const c = new MainMenuController(h);
 
     c.handleSelect('install', 'global');
 
@@ -75,20 +65,17 @@ describe('MainMenuController', () => {
     expect(h.onExit).not.toHaveBeenCalled();
   });
 
-  it('back() at main calls onExit and resets the menu', () => {
-    const menu = new MenuState();
+  it('back() at main calls onExit', () => {
     const h = buildHandlers();
-    const c = new MainMenuController(menu, h);
-    menu.go('install');
+    const c = new MainMenuController(h);
 
     c.back();
 
     expect(h.onExit).toHaveBeenCalledTimes(1);
-    expect(menu.getCurrent()).toBe('main');
   });
 
   it('handleSelect with unknown option throws', () => {
-    const c = new MainMenuController(new MenuState(), buildHandlers());
+    const c = new MainMenuController(buildHandlers());
     expect(() => c.handleSelect('nope', 'global')).toThrow(/unknown option/i);
   });
 });

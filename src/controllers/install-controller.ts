@@ -2,7 +2,6 @@ import type { IndexedSkill, Scope } from '../types/index.js';
 import { InstallerService, type InstallResult } from '../services/installer/installer-service.js';
 import { SkillRepository } from '../repositories/skill-repository.js';
 import { InstalledSkillsRepository } from '../repositories/installed-skills-repository.js';
-import { InstallState } from '../models/install-state.js';
 
 export interface InstallControllerHandlers {
   onBack: () => void;
@@ -11,8 +10,6 @@ export interface InstallControllerHandlers {
 }
 
 export class InstallController {
-  private readonly state: InstallState = new InstallState();
-
   constructor(
     private readonly skillRepo: SkillRepository,
     private readonly installedRepo: InstalledSkillsRepository,
@@ -34,31 +31,7 @@ export class InstallController {
     return names;
   }
 
-  setScope(scope: Scope): void {
-    this.state.setScope(scope);
-  }
-
-  getScope(): Scope {
-    return this.state.getScope();
-  }
-
-  setQuery(q: string): void {
-    this.state.setQuery(q);
-  }
-
-  toggle(name: string): void {
-    this.state.toggle(name);
-  }
-
-  isSelected(name: string): boolean {
-    return this.state.isSelected(name);
-  }
-
-  filter(available: IndexedSkill[]): IndexedSkill[] {
-    return this.state.filter(available);
-  }
-
-  async confirm(skills: IndexedSkill[]): Promise<void> {
+  async confirm(skills: IndexedSkill[], scope: Scope): Promise<void> {
     if (skills.length === 0) {
       this.handlers.onError('No skills selected');
       return;
@@ -70,7 +43,7 @@ export class InstallController {
     try {
       const aggregated = { installed: [], skipped: [], failed: [] } as InstallResult;
       for (const id of this.providerIds) {
-        const result = await this.installer.installMany(skills, this.state.getScope(), id);
+        const result = await this.installer.installMany(skills, scope, id);
         aggregated.installed.push(...result.installed);
         aggregated.skipped.push(...result.skipped);
         aggregated.failed.push(...result.failed);

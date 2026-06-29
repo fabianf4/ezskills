@@ -137,12 +137,18 @@ The default catalog ships inside the package at `dist/catalog/`. To use your
 own, point `EZSKILLS_SKILLS_DIR` at it (see below) or create a `catalog/`
 folder in the directory you launch `ezskills` from.
 
+### Catalog origin
+
+Skills in the bundled catalog are sourced from
+[midudev/autoskills](https://github.com/midudev/autoskills/tree/main). Thanks
+to midudev and the contributors of that project for curating and maintaining
+them. `ezskills` is a thin installer over those `SKILL.md` files.
+
 ## Environment variables
 
 | Variable                  | Default                                      | Description            |
 | ------------------------- | -------------------------------------------- | ---------------------- |
-| `EZSKILLS_SKILLS_DIR`     | `<cwd>/catalog` (or the bundled catalog)     | Source of skills       |
-| `EZSKILLS_INDEX_PATH`     | `<cwd>/.ezskills/index.json`                 | Generated index cache  |
+| `EZSKILLS_SKILLS_DIR`     | the bundled catalog                          | Source of skills       |
 | `EZSKILLS_OPENCODE_GLOBAL`| `~/.config/opencode/skills`                  | OpenCode global target |
 | `EZSKILLS_OPENCODE_LOCAL` | `<cwd>/.opencode/skills`                     | OpenCode local target  |
 | `EZSKILLS_OPENCLAW_GLOBAL`| `~/.openclaw/skills`                         | OpenClaw global target |
@@ -151,9 +157,11 @@ folder in the directory you launch `ezskills` from.
 `EZSKILLS_SKILLS_DIR` is resolved with this cascade:
 
 1. The environment variable, if set.
-2. `<cwd>/catalog` if that directory exists.
-3. The catalog bundled inside the package, so `ezskills` works the moment
+2. The catalog bundled inside the package, so `ezskills` works the moment
    you install it without any local setup.
+
+The index cache is written inside the catalog as `<catalog>/index.json`. Delete
+it to force a regen on next run.
 
 ## Detection
 
