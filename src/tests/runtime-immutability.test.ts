@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, resolve, relative } from 'node:path';
 
 const PROJECT_ROOT = resolve(import.meta.dirname, '..', '..');
@@ -24,6 +24,7 @@ const INDEXER_DIR = resolve(SRC_DIR, 'services', 'indexer');
 
 function listSourceFiles(dir: string): string[] {
   const out: string[] = [];
+  if (!existsSync(dir)) return out;
   const stat = statSync(dir);
   if (stat.isFile()) {
     if (/\.(ts|tsx)$/.test(dir) && !/\.(test|spec)\.tsx?$/.test(dir)) {
