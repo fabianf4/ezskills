@@ -142,10 +142,7 @@ export const App: React.FC<AppProps> = ({ deps }) => {
         available,
         scope,
         onScopeChange: (s) => setScope(s),
-        onConfirm: async (skills) => {
-          for (const s of skills) uninstallController.toggle(s.name);
-          await uninstallController.confirm();
-        },
+        onConfirm: (skills) => uninstallController.confirm(skills),
         onBack: () => { uninstallController.back(); setStatus(null); },
       }),
     );

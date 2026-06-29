@@ -1,7 +1,6 @@
 import type { InstalledSkill, Scope } from '../types/index.js';
 import { InstallerService, type UninstallResult } from '../services/installer/installer-service.js';
 import { InstalledSkillsRepository } from '../repositories/installed-skills-repository.js';
-import { UninstallState } from '../models/uninstall-state.js';
 
 export interface UninstallControllerHandlers {
   onBack: () => void;
@@ -9,7 +8,7 @@ export interface UninstallControllerHandlers {
 }
 
 export class UninstallController {
-  private readonly state: UninstallState = new UninstallState();
+  private scope: Scope = 'local';
 
   constructor(
     private readonly installedRepo: InstalledSkillsRepository,
@@ -19,52 +18,25 @@ export class UninstallController {
   ) {}
 
   async loadInstalled(): Promise<InstalledSkill[]> {
-    const all = await this.installedRepo.listByScope(this.state.getScope());
+    const all = await this.installedRepo.listByScope(this.scope);
     if (!this.providerIds) return all;
     return all.filter((s) => this.providerIds!.has(s.providerId));
   }
 
   setScope(scope: Scope): void {
-    this.state.setScope(scope);
+    this.scope = scope;
   }
 
   getScope(): Scope {
-    return this.state.getScope();
+    return this.scope;
   }
 
-  toggle(name: string): void {
-    this.state.toggle(name);
-  }
-
-  isSelected(name: string): boolean {
-    return this.state.isSelected(name);
-  }
-
-  beginConfirm(): void {
-    this.state.beginConfirm();
-  }
-
-  cancelConfirm(): void {
-    this.state.cancelConfirm();
-  }
-
-  isConfirming(): boolean {
-    return this.state.isConfirming();
-  }
-
-  async confirm(): Promise<void> {
-    const installed = await this.loadInstalled();
-    const toUninstall = this.state.selectFrom(installed);
-    if (toUninstall.length === 0) {
-      this.cancelConfirm();
+  async confirm(skills: InstalledSkill[]): Promise<void> {
+    if (skills.length === 0) {
       return;
     }
-    try {
-      const result = await this.installer.uninstallMany(toUninstall);
-      this.handlers.onResult(result);
-    } finally {
-      this.cancelConfirm();
-    }
+    const result = await this.installer.uninstallMany(skills);
+    this.handlers.onResult(result);
   }
 
   back(): void {

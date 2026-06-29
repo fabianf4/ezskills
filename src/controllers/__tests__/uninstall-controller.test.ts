@@ -61,50 +61,6 @@ describe('UninstallController', () => {
     expect(c.getScope()).toBe('local');
   });
 
-  it('toggle and isSelected', () => {
-    const provider = buildProvider('opencode');
-    const repo = new InstalledSkillsRepository([provider]);
-    const installer = new InstallerService(new Map([['opencode', provider]]), repo);
-    const c = new UninstallController(repo, installer, undefined, { onBack: vi.fn(), onResult: vi.fn() });
-    c.toggle('a');
-    expect(c.isSelected('a')).toBe(true);
-  });
-
-  it('beginConfirm and cancelConfirm', () => {
-    const provider = buildProvider('opencode');
-    const repo = new InstalledSkillsRepository([provider]);
-    const installer = new InstallerService(new Map([['opencode', provider]]), repo);
-    const c = new UninstallController(repo, installer, undefined, { onBack: vi.fn(), onResult: vi.fn() });
-    c.beginConfirm();
-    expect(c.isConfirming()).toBe(true);
-    c.cancelConfirm();
-    expect(c.isConfirming()).toBe(false);
-  });
-
-  it('confirm with no selection cancels', async () => {
-    const provider = buildProvider('opencode', SAMPLE);
-    const repo = new InstalledSkillsRepository([provider]);
-    const installer = new InstallerService(new Map([['opencode', provider]]), repo);
-    const c = new UninstallController(repo, installer, undefined, { onBack: vi.fn(), onResult: vi.fn() });
-    await c.confirm();
-    expect(c.isConfirming()).toBe(false);
-  });
-
-  it('confirm with selection uninstalls and calls onResult', async () => {
-    const provider = buildProvider('opencode', SAMPLE);
-    const uninstallSpy = vi.spyOn(provider, 'uninstall');
-    const repo = new InstalledSkillsRepository([provider]);
-    const installer = new InstallerService(new Map([['opencode', provider]]), repo);
-    const onResult = vi.fn();
-    const c = new UninstallController(repo, installer, undefined, { onBack: vi.fn(), onResult });
-    c.toggle('a');
-    c.beginConfirm();
-    await c.confirm();
-    expect(uninstallSpy).toHaveBeenCalled();
-    expect(onResult).toHaveBeenCalled();
-    expect(c.isConfirming()).toBe(false);
-  });
-
   it('back calls onBack', () => {
     const provider = buildProvider('opencode');
     const repo = new InstalledSkillsRepository([provider]);
@@ -113,5 +69,46 @@ describe('UninstallController', () => {
     const c = new UninstallController(repo, installer, undefined, { onBack, onResult: vi.fn() });
     c.back();
     expect(onBack).toHaveBeenCalled();
+  });
+
+  it('confirm(skills) uninstalls the given list directly (no internal toggle state)', async () => {
+    const provider = buildProvider('opencode', SAMPLE);
+    const uninstallSpy = vi.spyOn(provider, 'uninstall');
+    const repo = new InstalledSkillsRepository([provider]);
+    const installer = new InstallerService(new Map([['opencode', provider]]), repo);
+    const onResult = vi.fn();
+    const c = new UninstallController(repo, installer, undefined, { onBack: vi.fn(), onResult });
+
+    await c.confirm([SAMPLE[0]!, SAMPLE[1]!]);
+
+    expect(uninstallSpy).toHaveBeenCalledTimes(2);
+    expect(uninstallSpy).toHaveBeenNthCalledWith(1, SAMPLE[0]);
+    expect(uninstallSpy).toHaveBeenNthCalledWith(2, SAMPLE[1]);
+    expect(onResult).toHaveBeenCalledTimes(1);
+    const result = onResult.mock.calls[0]?.[0] as { uninstalled: string[]; failed: unknown[] };
+    expect(result.uninstalled.sort()).toEqual(['a', 'b']);
+    expect(result.failed).toEqual([]);
+  });
+
+  it('confirm([]) is a no-op (does not call onResult)', async () => {
+    const provider = buildProvider('opencode', SAMPLE);
+    const repo = new InstalledSkillsRepository([provider]);
+    const installer = new InstallerService(new Map([['opencode', provider]]), repo);
+    const onResult = vi.fn();
+    const c = new UninstallController(repo, installer, undefined, { onBack: vi.fn(), onResult });
+    await c.confirm([]);
+    expect(onResult).not.toHaveBeenCalled();
+  });
+
+  it('does not expose toggle/isSelected/beginConfirm (the view owns the selection)', () => {
+    const provider = buildProvider('opencode');
+    const repo = new InstalledSkillsRepository([provider]);
+    const installer = new InstallerService(new Map([['opencode', provider]]), repo);
+    const c = new UninstallController(repo, installer, undefined, { onBack: vi.fn(), onResult: vi.fn() });
+    expect((c as unknown as { toggle?: unknown }).toggle).toBeUndefined();
+    expect((c as unknown as { isSelected?: unknown }).isSelected).toBeUndefined();
+    expect((c as unknown as { beginConfirm?: unknown }).beginConfirm).toBeUndefined();
+    expect((c as unknown as { cancelConfirm?: unknown }).cancelConfirm).toBeUndefined();
+    expect((c as unknown as { isConfirming?: unknown }).isConfirming).toBeUndefined();
   });
 });
