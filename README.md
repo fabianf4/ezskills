@@ -59,19 +59,35 @@ skill, every scope, every provider. `ezskills` is a terminal interface that:
 
 ## Installation
 
+Requires Node.js 20+ and pnpm 11+ (pinned via `packageManager`; corepack
+will install it automatically the first time you run `pnpm`).
+
 ### From the repository (recommended while we don't ship to npm yet)
 
 ```bash
 git clone https://github.com/fabianf4/ezskills.git
 cd ezskills
-pnpm install
-pnpm build
-npm install -g .
+corepack enable            # only the first time, if pnpm isn't installed
+pnpm install               # dev deps
+pnpm build                 # compiles dist/
+pnpm add -g .              # installs the ezskills bin globally
 ezskills --version
 ```
 
-`pnpm add -g .` is equivalent but fails on some systems because of a PATH
-sanity check in pnpm 9.15.4 — use `npm install -g .` if that happens.
+#### Alternatives
+
+If you can't or don't want to use pnpm, npm works for the global install
+(skip `pnpm install` and `pnpm build`, build `dist/` once with `tsc`, or
+just use the npm install path):
+
+```bash
+git clone https://github.com/fabianf4/ezskills.git
+cd ezskills
+npm install
+npm run build
+npm install -g .
+ezskills --version
+```
 
 ### From npm (once published)
 
@@ -134,8 +150,7 @@ Optionally a `metadata.json` next to `SKILL.md` adds tags for the search:
 ```
 
 The default catalog ships inside the package at `dist/catalog/`. To use your
-own, point `EZSKILLS_SKILLS_DIR` at it (see below) or create a `catalog/`
-folder in the directory you launch `ezskills` from.
+own, set `EZSKILLS_SKILLS_DIR` to point at it (see below).
 
 ### Catalog origin
 

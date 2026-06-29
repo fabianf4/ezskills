@@ -1,6 +1,6 @@
 # ezskills
 
-TUI en TypeScript (Ink 5 + React 18) para instalar/desinstalar skills de OpenCode y OpenClaw. ESM estricto, Node >= 20, pnpm.
+TUI en TypeScript (Ink 5 + React 18) para instalar/desinstalar skills de OpenCode y OpenClaw. ESM estricto, Node >= 20, pnpm 11+ (pinned via `packageManager`).
 
 ## TDD
 
@@ -11,18 +11,22 @@ El proyecto se desarrolla con TDD estricto: **test rojo → implementación mín
 
 ## Comandos
 
-- `pnpm dev`           — corre con `tsx src/index.ts` (sin compilar).
-- `pnpm build`         — `tsc -p tsconfig.build.json` -> `dist/`, luego `chmod +x dist/index.js` (postbuild).
-- `pnpm start`         — `node dist/index.js` (requiere `build` previo).
-- `pnpm test`          — `vitest run` (suite completa).
-- `pnpm test:watch`    — `vitest` en watch.
-- `pnpm test:coverage` — reporte v8; umbral 90% (aplica a lógica de negocio).
-- `pnpm typecheck`     — `tsc --noEmit -p tsconfig.typecheck.json`.
-- `npm install -g .`   — instala el bin `ezskills` globalmente desde este repo (en este sistema `pnpm add -g .` falla por un check de PATH de pnpm 9.15.4; usar npm).
+pnpm es el package manager por defecto; npm funciona como drop-in replacement. Todos los scripts usan comandos shell puros, así que `npm run <script>` es equivalente a `pnpm <script>`.
+
+| Acción | pnpm | npm |
+|---|---|---|
+| Dev (sin compilar) | `pnpm dev` | `npm run dev` |
+| Build (tsc → dist/, +x) | `pnpm build` | `npm run build` |
+| Start (requiere build) | `pnpm start` | `npm run start` |
+| Test (suite completa) | `pnpm test` | `npm run test` |
+| Test watch | `pnpm test:watch` | `npm run test:watch` |
+| Coverage v8 (umbral 90%) | `pnpm test:coverage` | `npm run test:coverage` |
+| Typecheck | `pnpm typecheck` | `npm run typecheck` |
+| Install global del bin | `pnpm add -g .` | `npm install -g .` |
 
 CLI flags: `ezskills --version` / `-v` imprime versión y sale con código 0; `ezskills --help` / `-h` imprime ayuda y sale con código 0; opción desconocida sale con código 2. Sin flags arranca la TUI.
 
-No hay linter/formatter configurado. No ejecutar `pnpm lint`.
+No hay linter/formatter configurado. No ejecutar `lint` (con cualquier package manager).
 
 ## Arquitectura y entrypoints
 
